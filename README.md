@@ -2,7 +2,7 @@
 
 > A production-ready template for OpenCode AI assistant with pre-configured agents, skills, commands, hooks, and context.
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![OpenCode](https://img.shields.io/badge/OpenCode-Compatible-purple)
 
@@ -665,27 +665,219 @@ Three permission levels:
 
 ---
 
-## Recommended Plugins
+## Ecosystem: Plugins, Tools & Extensions
 
-Install these globally for enhanced functionality:
+A curated collection of OpenCode ecosystem tools discovered via parallel librarian agents.
 
-| Plugin | Description | Install |
-|--------|-------------|---------|
-| [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) | Background agents, LSP/AST tools | `npm i -g oh-my-opencode` |
-| [opencode-roadmap](https://github.com/IgorWarzocha/Opencode-Roadmap) | Strategic planning | `npm i -g opencode-roadmap` |
-| [opencode-tokenscope](https://github.com/ramtinJ95/opencode-tokenscope) | Token usage analysis | `npm i -g opencode-tokenscope` |
-| [opencode-dynamic-context-pruning](https://github.com/Tarquinen/opencode-dynamic-context-pruning) | Token optimization | `npm i -g opencode-dynamic-context-pruning` |
+### Core Plugins (Must-Have)
 
-See [awesome-opencode](https://github.com/awesome-opencode/awesome-opencode) for more plugins.
+| Plugin | Stars | Description | Install |
+|--------|-------|-------------|---------|
+| [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) | 4,135 | Async subagents, LSP/AST tools, curated agents (Sisyphus, Oracle, Librarian) | `npm i -g oh-my-opencode` |
+| [opencode-roadmap](https://github.com/IgorWarzocha/Opencode-Roadmap) | 16 | Persistent todo lists across sessions, multi-agent coordination | `npm i -g opencode-roadmap` |
+| [opencode-tokenscope](https://github.com/ramtinJ95/opencode-tokenscope) | 31 | Token usage analysis & cost tracking per model | `npm i -g opencode-tokenscope` |
+| [opencode-dynamic-context-pruning](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning) | 233 | Intelligently prunes context to save tokens | `npm i -g opencode-dynamic-context-pruning` |
+| [opencode-sessions](https://github.com/malhashemi/opencode-sessions) | 71 | Multi-agent session management & collaboration | `npm i -g opencode-sessions` |
+
+### Multi-Agent Orchestration
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [claude-squad](https://github.com/smtg-ai/claude-squad) | 5,454 | Manage multiple AI terminal agents in parallel |
+| [superset](https://github.com/superset-sh/superset) | 334 | Run dozens of agents in parallel using git worktrees |
+| [swarm-tools](https://github.com/joelhooks/swarm-tools) | 250 | Multi-agent swarm coordination with learning |
+| [opencode-background](https://github.com/zenobi-us/opencode-background) | 19 | Manage and communicate with background tasks |
+| [kimaki](https://github.com/remorses/kimaki) | 118 | Control OpenCode agents via Discord (voice channels too!) |
+
+### Context & Memory
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [Opencode-Context-Analysis-Plugin](https://github.com/IgorWarzocha/Opencode-Context-Analysis-Plugin) | 29 | Detailed token usage analysis for AI sessions |
+| [opencode-context.nvim](https://github.com/cousine/opencode-context.nvim) | 25 | Neovim plugin for opencode in tmux pane |
+| [Opencode-Context-Jar](https://github.com/IgorWarzocha/Opencode-Context-Jar) | 1 | Preserves edited files and consolidates context |
+| [occtx](https://github.com/hungthai1401/occtx) | 19 | Switch between multiple opencode.json configs |
+| [opencode-plugin-simple-memory](https://github.com/cnicolov/opencode-plugin-simple-memory) | 9 | Persistent memory across sessions |
+
+### Development Tools
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [opencode-pty](https://github.com/shekohex/opencode-pty) | 43 | Interactive PTY - run background processes, send input, regex filtering |
+| [opencode-type-inject](https://github.com/nick-vi/opencode-type-inject) | 25 | Auto-injects TypeScript types into file reads |
+| [opencode-morph-fast-apply](https://github.com/JRedeker/opencode-morph-fast-apply) | 8 | 10x faster code editing with lazy edit markers |
+| [opencode-beads](https://github.com/joshuadavidthomas/opencode-beads) | 35 | Plugin for beads issue tracker |
+| [opencode-lmstudio](https://github.com/agustif/opencode-lmstudio) | 9 | Enhanced LM Studio with auto-detection |
+
+### Authentication Providers
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [opencode-openai-codex-auth](https://github.com/numman-ali/opencode-openai-codex-auth) | 946 | OAuth for ChatGPT Plus/Pro subscriptions |
+| [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) | 590 | Auth for Antigravity models |
+| [opencode-gemini-auth](https://github.com/jenslys/opencode-gemini-auth) | 331 | Gemini auth plugin |
+
+### Skills & Workflows
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [opencode-skills](https://github.com/malhashemi/opencode-skills) | 434 | Curated skills collection |
+| [opencode-skillful](https://github.com/zenobi-us/opencode-skillful) | 7 | Lazy load prompts on demand |
+| [opencode-agent-skills](https://github.com/joshuadavidthomas/opencode-agent-skills) | 10 | Tools for using agent skills |
+| [Opencode-Workflows](https://github.com/IgorWarzocha/Opencode-Workflows) | 13 | Evolving workflow examples |
+| [opencode-workflows](https://github.com/mark-hingston/opencode-workflows) | 11 | Workflow automation via Mastra engine |
+
+### Monitoring & Analytics
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [ocmonitor-share](https://github.com/Shlomob/ocmonitor-share) | 53 | CLI for monitoring OpenCode usage |
+| [opencode-wrapped](https://github.com/moddi3/opencode-wrapped) | 64 | Year-in-review stats & visualizations |
+| [opencode-subagent-logging](https://github.com/thatguyinabeanie/opencode-subagent-logging) | 3 | Subagent logging and monitoring |
+| [opencode-otel](https://github.com/dan-jeff/opencode-otel) | 0 | OpenTelemetry integration |
+
+### Code Quality & Review
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [opencode-review-helper](https://github.com/shamashel/opencode-review-helper) | 1 | Review AI-generated changes, suggest order, analyze impact |
+| [opencode-debug-helper](https://github.com/shamashel/opencode-debug-helper) | 0 | Cursor-style debug mode with auto instrumentation |
+| [opencode-reflection-plugin](https://github.com/dzianisv/opencode-reflection-plugin) | 3 | Reflection/judge layer to verify task completion |
+| [Pickle-Thinker](https://github.com/IgorWarzocha/Pickle-Thinker) | 29 | Makes GLM & Big Pickle ultrathink |
+
+### UI & Notifications
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [portal](https://github.com/hosenur/portal) | 126 | Mobile-first web UI with git + in-browser terminal |
+| [opencode-vibe](https://github.com/joelhooks/opencode-vibe) | 97 | Next.js 16 web UI with streaming SSE |
+| [openchamber](https://github.com/btriapitsyn/openchamber) | 77 | Desktop + web interface |
+| [opencode-manager](https://github.com/chriswritescode-dev/opencode-manager) | 66 | Mobile-first multi-agent manager |
+| [opencode.nvim](https://github.com/NickvanDyke/opencode.nvim) | 1,289 | Neovim integration |
+| [opencode-notificator](https://github.com/panta82/opencode-notificator) | 1 | Desktop notifications |
+| [opencode-voice-plugin](https://github.com/Olbrasoft/opencode-voice-plugin) | 1 | Text-to-speech with EdgeTTS |
+| [voicemode](https://github.com/mbailey/voicemode) | 529 | Natural voice conversations + sound feedback |
+| [cc-notifier](https://github.com/Rendann/cc-notifier) | 65 | macOS push notifications |
+
+### Environment & Config
+
+| Plugin | Stars | Description |
+|--------|-------|-------------|
+| [opencode-direnv](https://github.com/simonwjackson/opencode-direnv) | 7 | Auto-load direnv environment at session start |
+| [opencode-ignore](https://github.com/lgladysz/opencode-ignore) | 9 | Restrict AI access via .ignore patterns |
+| [opencode-rules](https://github.com/frap129/opencode-rules) | 3 | Handle rules files like Cursor |
+| [opencode-eslint-formatter](https://github.com/samholmes/opencode-eslint-formatter) | 1 | ESLint as formatter when config detected |
+
+### Agent Collections
+
+| Repo | Stars | Description |
+|------|-------|-------------|
+| [OpenAgents](https://github.com/darrenhinde/OpenAgents) | 513 | Plan-first development with approval-based execution |
+| [opencode-agents](https://github.com/veschin/opencode-agents) | 31 | Well-tested agent collection |
+| [personal-agent-systems](https://github.com/darrenhinde/personal-agent-systems) | 30 | Agents to manage your life |
+| [Opencode-Agent-Creator-Plugin](https://github.com/IgorWarzocha/Opencode-Agent-Creator-Plugin) | 2 | Create agents within TUI |
+
+### Hooks & Automation
+
+| Repo | Stars | Description |
+|------|-------|-------------|
+| [claude-code-hooks-mastery](https://github.com/disler/claude-code-hooks-mastery) | 2,002 | Comprehensive hook patterns guide |
+| [claude-code-skill-factory](https://github.com/alirezarezvani/claude-code-skill-factory) | 267 | Hook generator, validator, template engine |
+
+### Templates & Starters
+
+| Repo | Stars | Description |
+|------|-------|-------------|
+| [opencode-plugin-template](https://github.com/zenobi-us/opencode-plugin-template) | 20 | Template for OpenCode plugins |
+| [opencode-template](https://github.com/julianromli/opencode-template) | 22 | OpenCode template |
+| [opencode-ultimate-starter](https://github.com/bruhismyname/opencode-ultimate-starter) | 5 | Ultimate starter with Oh My OpenCode + fixes |
+
+### Utilities
+
+| Repo | Stars | Description |
+|------|-------|-------------|
+| [Opencode-Extensions-TUI](https://github.com/IgorWarzocha/Opencode-Extensions-TUI) | 5 | TUI-based extensions manager |
+| [OmO-Agent-Config](https://github.com/Zerostate-IO/OmO-Agent-Config) | 3 | CLI for Oh My OpenCode agent model assignments |
+| [opencode-flake](https://github.com/AodhanHayter/opencode-flake) | 26 | Nix flake for OpenCode |
+| [slipstream](https://github.com/rothnic/slipstream) | 1 | Oh-my-zsh plugin for warp-like AI via OpenCode |
+
+---
+
+## MCP Servers (Swiss Army Knives)
+
+### All-in-One Powerhouses
+
+| Server | Stars | Description |
+|--------|-------|-------------|
+| [PAL MCP Server](https://github.com/BeehiveInnovations/pal-mcp-server) | 10,685 | Multi-model: Claude/Gemini/OpenAI/Grok/Ollama |
+| [Activepieces](https://github.com/activepieces/activepieces) | 20,134 | ~400 MCP servers for AI agents |
+| [MindsDB](https://github.com/mindsdb/mindsdb) | 38,138 | "The only MCP Server you'll ever need" |
+| [FastMCP](https://github.com/jlowin/fastmcp) | 21,568 | Fast, Pythonic MCP server builder |
+| [Context7](https://github.com/upstash/context7) | 40,504 | Up-to-date code documentation for LLMs |
+
+### Database Access
+
+| Server | Stars | Description |
+|--------|-------|-------------|
+| [DBHub](https://github.com/bytebase/dbhub) | 1,809 | Zero-dep, multi-DB (Postgres, MySQL, SQLite, etc.) |
+| [MongoDB MCP](https://github.com/mongodb-js/mongodb-mcp) | 868 | MongoDB Atlas integration |
+| [Qdrant MCP](https://github.com/qdrant/mcp-server-qdrant) | 1,150 | Vector database |
+| [Neo4j MCP](https://github.com/neo4j-contrib/neo4j-mcp) | 859 | Graph database |
+
+### Browser Automation
+
+| Server | Stars | Description |
+|--------|-------|-------------|
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | 24,934 | Official Microsoft browser automation |
+| [Browserbase MCP](https://github.com/browserbase/mcp-server) | 2,996 | Browser control with Stagehand |
+| [Stealth Browser MCP](https://github.com/nicholasoxford/stealth-browser-mcp) | - | Bypasses Cloudflare and antibots |
+
+### API Integrations
+
+| Server | Stars | Description |
+|--------|-------|-------------|
+| [GitHub MCP](https://github.com/modelcontextprotocol/servers) | 25,530 | Official GitHub API integration |
+| [Slack MCP](https://github.com/modelcontextprotocol/servers) | 1,042 | Slack integration |
+| [Notion MCP](https://github.com/modelcontextprotocol/servers) | 3,636 | Notion API |
+| [WhatsApp MCP](https://github.com/lharries/whatsapp-mcp) | 5,177 | WhatsApp integration |
+| [AWS MCP](https://github.com/awslabs/mcp) | 7,749 | AWS services |
+| [Cloudflare MCP](https://github.com/cloudflare/mcp-server-cloudflare) | 3,232 | Cloudflare services |
+| [Kubernetes MCP](https://github.com/strowk/mcp-k8s-go) | 1,237 | K8s management |
+
+### Search & Data
+
+| Server | Stars | Description |
+|--------|-------|-------------|
+| [Exa MCP](https://github.com/exa-labs/exa-mcp-server) | 3,474 | Web search and crawling |
+| [Firecrawl MCP](https://github.com/mendableai/firecrawl-mcp) | 5,152 | Web scraping and search |
+| [Arxiv MCP](https://github.com/blazickjp/arxiv-mcp-server) | 1,985 | Search and analyze research papers |
+
+### Productivity
+
+| Server | Stars | Description |
+|--------|-------|-------------|
+| [Excel MCP](https://github.com/negokaz/excel-mcp-server) | 3,037 | Excel file manipulation |
+| [Word MCP](https://github.com/GongRzhe/Office-Word-MCP-Server) | 1,284 | Word document editing |
+| [PowerPoint MCP](https://github.com/GongRzhe/Office-PowerPoint-MCP-Server) | 1,357 | PowerPoint manipulation |
+| [ElevenLabs MCP](https://github.com/elevenlabs/elevenlabs-mcp) | 1,121 | Text-to-speech |
+
+### Curated Lists
+
+| List | Stars | Description |
+|------|-------|-------------|
+| [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) | 77,862 | The definitive MCP collection |
+| [MCP Registry](https://github.com/modelcontextprotocol/registry) | 6,188 | Official community registry |
 
 ---
 
 ## Resources
 
-- [awesome-opencode](https://github.com/awesome-opencode/awesome-opencode) - Curated plugins, themes, agents
+- [awesome-opencode](https://github.com/awesome-opencode/awesome-opencode) - Curated plugins, themes, agents (501 ⭐)
 - [awesome-llm-skills](https://github.com/Prat011/awesome-llm-skills) - Skill patterns and examples
-- [OpenAgents](https://github.com/darrenhinde/OpenAgents) - Original framework
+- [OpenAgents](https://github.com/darrenhinde/OpenAgents) - Plan-first development framework
 - [OpenCode Docs](https://opencode.ai) - Official documentation
+- [claude-code-hooks-mastery](https://github.com/disler/claude-code-hooks-mastery) - Hook patterns guide (2,002 ⭐)
+- [opencode-plugins-manual](https://github.com/joshuadavidthomas/opencode-plugins-manual) - Unofficial plugin manual
 
 ---
 

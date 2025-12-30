@@ -147,6 +147,87 @@
   },
 
   "mcp": {
-    "servers": {}
+    "servers": {
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp@latest"],
+        "env": {},
+        "disabled": true,
+        "description": "Up-to-date code documentation for LLMs"
+      },
+      "github": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+        },
+        "disabled": true,
+        "description": "GitHub API integration"
+      },
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "${PROJECT_DIR}"],
+        "env": {},
+        "disabled": true,
+        "description": "Secure filesystem access"
+      },
+      "memory": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-memory"],
+        "env": {},
+        "disabled": true,
+        "description": "Persistent memory across sessions"
+      },
+      "sequential-thinking": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+        "env": {},
+        "disabled": true,
+        "description": "Step-by-step reasoning"
+      },
+      "playwright": {
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-playwright"],
+        "env": {},
+        "disabled": true,
+        "description": "Browser automation"
+      },
+      "exa": {
+        "command": "npx",
+        "args": ["-y", "exa-mcp-server"],
+        "env": {
+          "EXA_API_KEY": "${EXA_API_KEY}"
+        },
+        "disabled": true,
+        "description": "Web search and content extraction"
+      },
+      "slack": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-slack"],
+        "env": {
+          "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
+        },
+        "disabled": true,
+        "description": "Slack integration"
+      },
+      "notion": {
+        "command": "npx",
+        "args": ["-y", "@suekou/mcp-notion-server"],
+        "env": {
+          "NOTION_API_KEY": "${NOTION_API_KEY}"
+        },
+        "disabled": true,
+        "description": "Notion API integration"
+      },
+      "postgres": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres"],
+        "env": {
+          "DATABASE_URL": "${DATABASE_URL}"
+        },
+        "disabled": true,
+        "description": "PostgreSQL database access"
+      }
+    }
   }
 }
