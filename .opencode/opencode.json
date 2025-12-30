@@ -1,0 +1,152 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  
+  "instructions": [
+    "OPENCODE.md",
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    ".cursorrules",
+    "README.md"
+  ],
+
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(uv:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(grep:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(pnpm:*)",
+      "Bash(yarn:*)",
+      "Bash(bun:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(cat:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(node:*)",
+      "Bash(deno:*)",
+      "Bash(cargo:*)",
+      "Bash(go:*)",
+      "Bash(make:*)",
+      "Bash(cmake:*)",
+      "Bash(chmod:*)",
+      "Bash(touch:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(diff:*)",
+      "Bash(tree:*)",
+      "Bash(pwd:*)",
+      "Bash(echo:*)",
+      "Bash(date:*)",
+      "Bash(which:*)",
+      "Bash(env:*)",
+      "Bash(export:*)",
+      "Bash(source:*)",
+      "Bash(ruff:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)",
+      "Bash(tsc:*)",
+      "Bash(vitest:*)",
+      "Bash(jest:*)",
+      "Bash(pytest:*)",
+      "Write",
+      "Edit",
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~/*)",
+      "Bash(rm -rf ./*)",
+      "Bash(sudo:*)",
+      "Bash(su:*)",
+      "Bash(kill -9:*)",
+      "Bash(pkill -9:*)",
+      "Bash(killall:*)",
+      "Bash(shutdown:*)",
+      "Bash(reboot:*)",
+      "Bash(halt:*)",
+      "Bash(> /dev/*)",
+      "Bash(dd:*)",
+      "Bash(mkfs:*)",
+      "Bash(fdisk:*)",
+      "Bash(parted:*)",
+      "Bash(docker system prune -a:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(docker network rm:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(git push --force origin main:*)",
+      "Bash(git push --force origin master:*)",
+      "Bash(npm uninstall -g:*)",
+      "Bash(pip uninstall -y:*)",
+      "Bash(chmod 777:*)",
+      "Bash(chown -R:*)"
+    ],
+    "ask": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(git push --force:*)",
+      "Bash(git rebase:*)",
+      "Bash(docker rmi:*)",
+      "Bash(docker rm:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(pip uninstall:*)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $PROJECT_DIR/.opencode/hooks/pre_tool_use.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $PROJECT_DIR/.opencode/hooks/post_tool_use.py"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $PROJECT_DIR/.opencode/hooks/session_start.py"
+          }
+        ]
+      }
+    ]
+  },
+
+  "mcp": {
+    "servers": {}
+  }
+}
