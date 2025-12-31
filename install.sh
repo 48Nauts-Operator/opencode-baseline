@@ -3,7 +3,7 @@
 # OpenCode Baseline Installer
 # 
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/YOUR_ORG/open-code-baseline/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/48Nauts-Operator/opencode-baseline/main/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-env --no-opencode-md
@@ -19,7 +19,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Config - UPDATE THIS URL to your fork/repo before publishing
-REPO_URL="${OPENCODE_BASELINE_REPO:-https://github.com/YOUR_ORG/opencode-baseline}"
+REPO_URL="${OPENCODE_BASELINE_REPO:-https://github.com/48Nauts-Operator/opencode-baseline}"
 BRANCH="${OPENCODE_BASELINE_BRANCH:-main}"
 TEMP_DIR=$(mktemp -d)
 
@@ -197,5 +197,5 @@ echo "  2. Copy .env.example to .env and add API keys"
 echo "  3. Set ENGINEER_NAME in .env for personalized voice"
 echo "  4. Customize .opencode/context/project/ for your needs"
 echo ""
-echo -e "Docs: ${BLUE}https://github.com/YOUR_ORG/open-code-baseline${NC}"
+echo -e "Docs: ${BLUE}https://github.com/48Nauts-Operator/opencode-baseline${NC}"
 echo ""
