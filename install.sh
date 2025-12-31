@@ -160,7 +160,7 @@ if [[ "$INSTALL_VOICE" = true ]]; then
   
   if ! command -v docker &> /dev/null; then
     warn "Docker not found. Skipping Kokoro voice mode installation."
-    warn "Install Docker and run: docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi:latest"
+    warn "Install Docker and run: docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest"
   else
     if docker ps -a --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
       info "Kokoro container exists, checking status..."
@@ -173,7 +173,7 @@ if [[ "$INSTALL_VOICE" = true ]]; then
       fi
     else
       info "Pulling and starting Kokoro TTS container..."
-      docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi:latest
+      docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi-cpu:latest
       success "Kokoro voice mode installed (localhost:8880)"
     fi
   fi
