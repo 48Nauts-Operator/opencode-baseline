@@ -13,121 +13,189 @@ import sys
 import subprocess
 import random
 from pathlib import Path
+from datetime import datetime
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
-    pass  # dotenv is optional
+    pass
+
+
+def get_project_info(workspace_dir: str) -> dict:
+    project_path = Path(workspace_dir)
+    project_name = project_path.name
+
+    git_branch = None
+    try:
+        result = subprocess.run(
+            ["git", "-C", workspace_dir, "symbolic-ref", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0:
+            git_branch = result.stdout.strip()
+    except Exception:
+        pass
+
+    project_type = "Unknown"
+    if (project_path / "package.json").exists():
+        project_type = "Node.js"
+    elif (project_path / "requirements.txt").exists() or (
+        project_path / "pyproject.toml"
+    ).exists():
+        project_type = "Python"
+    elif (project_path / "go.mod").exists():
+        project_type = "Go"
+    elif (project_path / "Cargo.toml").exists():
+        project_type = "Rust"
+    elif any(project_path.glob("*.xcodeproj")):
+        project_type = "iOS/Swift"
+    elif (project_path / "docker-compose.yml").exists():
+        project_type = "Docker"
+
+    return {
+        "name": project_name,
+        "path": str(project_path),
+        "type": project_type,
+        "branch": git_branch,
+    }
+
+
+def get_notification_message(input_data: dict) -> str:
+    workspace = input_data.get("workspace", {})
+    current_dir = workspace.get("current_dir", os.getcwd())
+    project_info = get_project_info(current_dir)
+
+    message = input_data.get("message", "")
+    engineer_name = os.getenv("ENGINEER_NAME", "").strip() or "Sir"
+    project_name = project_info["name"]
+
+    if "waiting for your input" in message.lower() or "question" in message.lower():
+        templates = [
+            f"{engineer_name}, I need your input on {project_name}",
+            f"Shall I render {project_name} for you, {engineer_name}?",
+            f"{engineer_name}, {project_name} requires your attention",
+            f"If you please {engineer_name}, {project_name} awaits your decision",
+            f"{engineer_name}, there's only so much I can do when {project_name} needs attention",
+        ]
+    elif "error" in message.lower() or "failed" in message.lower():
+        templates = [
+            f"{engineer_name}, we have a problem with {project_name}",
+            f"{engineer_name}, there is a potentially fatal issue in {project_name}",
+            f"I'm afraid {project_name} is malfunctioning, {engineer_name}",
+            f"Not good {engineer_name}. {project_name} has experienced a severe issue",
+        ]
+    elif (
+        "complete" in message.lower()
+        or "finished" in message.lower()
+        or "done" in message.lower()
+    ):
+        templates = [
+            f"All wrapped up with {project_name}, {engineer_name}. Will there be anything else?",
+            f"As always {engineer_name}, a great pleasure working on {project_name}",
+            f"{project_name} is online and ready, {engineer_name}",
+            f"Congratulations {engineer_name}, {project_name} is operational",
+            f"{engineer_name}, might I say {project_name} turned out rather well",
+        ]
+    else:
+        templates = [
+            f"{engineer_name}, you have an update on {project_name}",
+            f"{engineer_name}, I have an update from {project_name}",
+            f"{engineer_name}, {project_name} requires your attention",
+            f"I've got something on {project_name}, {engineer_name}",
+        ]
+
+    return random.choice(templates)
 
 
 def get_tts_script_path():
-    """
-    Determine which TTS script to use based on available API keys.
-    Priority order: ElevenLabs > OpenAI > pyttsx3
-    """
-    # Get current script directory and construct utils/tts path
     script_dir = Path(__file__).parent
     tts_dir = script_dir / "utils" / "tts"
-    
-    # Check for ElevenLabs API key (highest priority)
-    if os.getenv('ELEVENLABS_API_KEY'):
-        elevenlabs_script = tts_dir / "elevenlabs_tts.py"
-        if elevenlabs_script.exists():
-            return str(elevenlabs_script)
-    
-    # Check for OpenAI API key (second priority)
-    if os.getenv('OPENAI_API_KEY'):
-        openai_script = tts_dir / "openai_tts.py"
-        if openai_script.exists():
-            return str(openai_script)
-    
-    # Fall back to pyttsx3 (no API key required)
-    pyttsx3_script = tts_dir / "pyttsx3_tts.py"
-    if pyttsx3_script.exists():
-        return str(pyttsx3_script)
-    
+
+    kokoro_script = tts_dir / "kokoro_tts.py"
+    if kokoro_script.exists():
+        return str(kokoro_script)
+
     return None
 
 
-def announce_notification():
-    """Announce that the agent needs user input."""
+def announce_notification(message: str):
     try:
         tts_script = get_tts_script_path()
         if not tts_script:
-            return  # No TTS scripts available
-        
-        # Get engineer name if available
-        engineer_name = os.getenv('ENGINEER_NAME', '').strip()
-        
-        # Create notification message with 30% chance to include name
-        if engineer_name and random.random() < 0.3:
-            notification_message = f"{engineer_name}, your agent needs your input"
-        else:
-            notification_message = "Your agent needs your input"
-        
-        # Call the TTS script with the notification message
-        subprocess.run([
-            "uv", "run", tts_script, notification_message
-        ], 
-        capture_output=True,  # Suppress output
-        timeout=10  # 10-second timeout
+            return
+
+        subprocess.run(
+            ["uv", "run", tts_script, message], timeout=60, capture_output=True
         )
-        
-    except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
-        # Fail silently if TTS encounters issues
+
+    except subprocess.TimeoutExpired:
+        pass
+    except (subprocess.SubprocessError, FileNotFoundError):
         pass
     except Exception:
-        # Fail silently for any other errors
+        pass
+
+
+def log_notification(input_data: dict, project_info: dict):
+    try:
+        project_path = Path(project_info["path"])
+        log_dir = project_path / "logs"
+        log_dir.mkdir(exist_ok=True)
+
+        log_file = log_dir / "notifications.jsonl"
+
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "project": project_info["name"],
+            "project_type": project_info["type"],
+            "branch": project_info.get("branch"),
+            "type": input_data.get("type"),
+            "message": input_data.get("message"),
+        }
+
+        with open(log_file, "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+
+    except Exception:
         pass
 
 
 def main():
     try:
-        # Parse command line arguments
         parser = argparse.ArgumentParser()
-        parser.add_argument('--notify', action='store_true', help='Enable TTS notifications')
+        parser.add_argument(
+            "--notify", action="store_true", help="Enable TTS notifications"
+        )
+        parser.add_argument(
+            "--silent", action="store_true", help="Disable TTS (log only)"
+        )
         args = parser.parse_args()
-        
-        # Read JSON input from stdin
+
         input_data = json.loads(sys.stdin.read())
-        
-        # Ensure log directory exists
-        import os
-        log_dir = os.path.join(os.getcwd(), 'logs')
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, 'notification.json')
-        
-        # Read existing log data or initialize empty list
-        if os.path.exists(log_file):
-            with open(log_file, 'r') as f:
-                try:
-                    log_data = json.load(f)
-                except (json.JSONDecodeError, ValueError):
-                    log_data = []
-        else:
-            log_data = []
-        
-        # Append new data
-        log_data.append(input_data)
-        
-        # Write back to file with formatting
-        with open(log_file, 'w') as f:
-            json.dump(log_data, f, indent=2)
-        
-        # Announce notification via TTS only if --notify flag is set
-        # Skip TTS for the generic "Claude is waiting for your input" message
-        if args.notify and input_data.get('message') != 'Claude is waiting for your input':
-            announce_notification()
-        
-        sys.exit(0)
-        
-    except json.JSONDecodeError:
-        # Handle JSON decode errors gracefully
-        sys.exit(0)
-    except Exception:
-        # Handle any other errors gracefully
+
+        workspace = input_data.get("workspace", {})
+        current_dir = workspace.get("current_dir", os.getcwd())
+        project_info = get_project_info(current_dir)
+
+        log_notification(input_data, project_info)
+
+        notification_message = get_notification_message(input_data)
+
+        if args.notify and not args.silent:
+            if input_data.get("message") != "Claude is waiting for your input":
+                announce_notification(notification_message)
+
         sys.exit(0)
 
-if __name__ == '__main__':
+    except json.JSONDecodeError:
+        sys.exit(0)
+    except Exception:
+        sys.exit(0)
+
+
+if __name__ == "__main__":
     main()

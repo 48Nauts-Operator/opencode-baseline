@@ -17,6 +17,8 @@ PRESERVE_ITEMS=(
   "opencode.json"
 )
 
+UPDATE_VOICE=true
+
 while [[ $# -gt 0 ]]; do
   case $1 in
     --branch|-b)
@@ -31,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       PRESERVE_ITEMS=()
       shift
       ;;
+    --no-voice)
+      UPDATE_VOICE=false
+      shift
+      ;;
     --help|-h)
       echo "OpenCode Baseline Updater"
       echo ""
@@ -40,6 +46,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --branch, -b <branch>  Use specific branch (default: main)"
       echo "  --preserve, -p <path>  Additional path to preserve (can use multiple times)"
       echo "  --full                 Full update, don't preserve anything"
+      echo "  --no-voice             Don't update Kokoro voice mode"
       echo "  --help, -h             Show this help"
       echo ""
       echo "Default preserved paths:"
@@ -116,6 +123,25 @@ if [[ -f "$BACKUP_DIR/OPENCODE.md" ]]; then
 fi
 
 NEW_VERSION=$(cat "$TEMP_DIR/repo/.opencode/VERSION" 2>/dev/null || echo "unknown")
+
+if [[ "$UPDATE_VOICE" = true ]]; then
+  echo -e "${BLUE}[INFO]${NC} Updating Kokoro Voice Mode..."
+  
+  if ! command -v docker &> /dev/null; then
+    echo -e "${YELLOW}[WARN]${NC} Docker not found. Skipping Kokoro update."
+  else
+    if docker ps -a --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
+      echo -e "${BLUE}[INFO]${NC} Pulling latest Kokoro image..."
+      docker pull ghcr.io/remsky/kokoro-fastapi:latest
+      docker stop kokoro-tts 2>/dev/null || true
+      docker rm kokoro-tts 2>/dev/null || true
+      docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi:latest
+      echo -e "${GREEN}[OK]${NC} Kokoro voice mode updated"
+    else
+      echo -e "${YELLOW}[WARN]${NC} Kokoro not installed. Run install.sh to set up voice mode."
+    fi
+  fi
+fi
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"

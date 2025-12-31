@@ -9,6 +9,8 @@ Hooks are Python scripts that run at specific lifecycle events. They can modify 
 | `pre_tool_use.py` | Before each tool call | Yes (exit 2) | Security, validation |
 | `post_tool_use.py` | After each tool call | No | Logging, metrics |
 | `session_start.py` | Session begins | No | Load context, init state |
+| `notification.py` | Agent needs input | No | Voice alerts (TTS) |
+| `stop.py` | Agent completes work | No | Completion announcements |
 
 ## Configuration
 
@@ -129,3 +131,39 @@ See `session_start.py` for loading git status, context files, and GitHub issues.
 
 ### Audit Logging
 See `post_tool_use.py` for logging all tool usage to JSON files.
+
+## Voice Mode (Kokoro TTS)
+
+Voice mode provides spoken notifications when the agent needs input or completes work.
+Uses Kokoro-FastAPI running locally via Docker - free, fast, British voice.
+
+### Installation
+
+Voice mode is automatically installed with `install.sh`. It runs Kokoro-FastAPI in Docker:
+
+```bash
+docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi:latest
+```
+
+### Configuration
+
+Add to `.env`:
+```bash
+ENGINEER_NAME=YourName  # Used in notifications like "Sir, project needs attention"
+KOKORO_PORT=8880        # Optional: custom Kokoro port
+```
+
+### Message Style
+
+Notifications use JARVIS-style messages with project context:
+- "Sir, I need your input on MyProject"
+- "All wrapped up with MyProject, Sir. Will there be anything else?"
+- "Sir, there is a potentially fatal issue in MyProject"
+
+### Manual Control
+
+```bash
+docker start kokoro-tts   # Start voice mode
+docker stop kokoro-tts    # Stop voice mode
+docker logs kokoro-tts    # View logs
+```

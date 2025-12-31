@@ -26,6 +26,7 @@ TEMP_DIR=$(mktemp -d)
 # Options
 INSTALL_ENV=true
 INSTALL_OPENCODE_MD=true
+INSTALL_VOICE=true
 FORCE=false
 
 # Parse arguments
@@ -37,6 +38,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-opencode-md)
       INSTALL_OPENCODE_MD=false
+      shift
+      ;;
+    --no-voice)
+      INSTALL_VOICE=false
       shift
       ;;
     --force|-f)
@@ -55,6 +60,7 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --no-env          Don't copy .env.example"
       echo "  --no-opencode-md  Don't copy OPENCODE.md template"
+      echo "  --no-voice        Don't install Kokoro voice mode (Docker)"
       echo "  --force, -f       Overwrite existing .opencode directory"
       echo "  --branch, -b      Use specific branch (default: main)"
       echo "  --help, -h        Show this help"
@@ -148,6 +154,31 @@ if [[ "$INSTALL_ENV" = true ]]; then
   fi
 fi
 
+# Install Kokoro Voice Mode (Docker)
+if [[ "$INSTALL_VOICE" = true ]]; then
+  info "Setting up Kokoro Voice Mode..."
+  
+  if ! command -v docker &> /dev/null; then
+    warn "Docker not found. Skipping Kokoro voice mode installation."
+    warn "Install Docker and run: docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi:latest"
+  else
+    if docker ps -a --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
+      info "Kokoro container exists, checking status..."
+      if docker ps --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
+        success "Kokoro voice mode already running"
+      else
+        info "Starting existing Kokoro container..."
+        docker start kokoro-tts
+        success "Kokoro voice mode started"
+      fi
+    else
+      info "Pulling and starting Kokoro TTS container..."
+      docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi:latest
+      success "Kokoro voice mode installed (localhost:8880)"
+    fi
+  fi
+fi
+
 # Summary
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
@@ -158,11 +189,13 @@ echo "Installed:"
 echo "  .opencode/           - Agents, commands, skills, hooks"
 [[ "$INSTALL_OPENCODE_MD" = true ]] && echo "  OPENCODE.md          - Project context template"
 [[ "$INSTALL_ENV" = true ]] && echo "  .env.example         - Environment template"
+[[ "$INSTALL_VOICE" = true ]] && echo "  Kokoro TTS           - Voice notifications (localhost:8880)"
 echo ""
 echo "Next steps:"
 echo "  1. Edit OPENCODE.md with your project details"
 echo "  2. Copy .env.example to .env and add API keys"
-echo "  3. Customize .opencode/context/project/ for your needs"
+echo "  3. Set ENGINEER_NAME in .env for personalized voice"
+echo "  4. Customize .opencode/context/project/ for your needs"
 echo ""
 echo -e "Docs: ${BLUE}https://github.com/YOUR_ORG/open-code-baseline${NC}"
 echo ""

@@ -149,19 +149,23 @@ cat .opencode/opencode.json | head -20
 
 | Component | Count | Description |
 |-----------|-------|-------------|
-| **Skills** | 9 | Reusable workflows (TDD, code review, debugging, etc.) |
-| **Agents** | 28 | Specialized AI personas (language experts, DevOps, etc.) |
-| **Commands** | 12 | Slash commands for common operations |
+| **Skills** | 45 | Reusable workflows + domain knowledge (K8s, Security, LLM, MLOps, etc.) |
+| **Agents** | 35 | Specialized AI personas (language experts, DevOps, architecture, etc.) |
+| **Commands** | 18 | Slash commands for operations + incident response + orchestration |
 | **Hooks** | 3 | Lifecycle hooks (pre/post tool use, session start) |
 | **Plugins** | 3 | Extensions (agent validator, notifications) |
 | **Tools** | 4 | Custom tools (Gemini image editing, env management) |
 | **Context Files** | 20+ | Domain knowledge and standards |
+
+> **v0.3.0 Update**: Added 27 new skills and 7 new agents from [wshobson/agents](https://github.com/wshobson/agents) (23k ⭐)
 
 ---
 
 ## Skills
 
 Reusable workflows that teach AI how to perform specific tasks. Located in `.opencode/skill/`.
+
+### Core Skills
 
 | Skill | Description | Workflow |
 |-------|-------------|----------|
@@ -174,6 +178,58 @@ Reusable workflows that teach AI how to perform specific tasks. Located in `.ope
 | **mcp-builder** | Build MCP servers for AI agent integrations | Development |
 | **file-organizer** | Intelligently organize files with duplicate detection | Productivity |
 | **pr-create** | Create well-structured pull requests with proper descriptions | Git |
+
+### Kubernetes Skills (`skill/kubernetes/`)
+
+| Skill | Description |
+|-------|-------------|
+| **k8s-manifest-generator** | Production-ready K8s manifests (Deployments, Services, ConfigMaps) |
+| **helm-chart-scaffolding** | Helm chart creation, templating, multi-environment deployment |
+| **gitops-workflow** | ArgoCD/Flux GitOps automation, declarative deployments |
+| **k8s-security-policies** | Network policies, RBAC patterns, security hardening |
+
+### Security Skills (`skill/security/`)
+
+| Skill | Description |
+|-------|-------------|
+| **sast-configuration** | SAST tool setup (Semgrep, SonarQube, CodeQL), custom rules |
+| **attack-tree-construction** | Threat modeling, attack path visualization |
+| **stride-analysis-patterns** | STRIDE threat modeling methodology |
+| **security-requirement-extraction** | Security requirements from specifications |
+| **threat-mitigation-mapping** | Mapping threats to mitigations |
+
+### LLM Development Skills (`skill/llm-dev/`)
+
+| Skill | Description |
+|-------|-------------|
+| **langchain-architecture** | LangChain agents, chains, memory, tool integration |
+| **rag-implementation** | Retrieval-Augmented Generation patterns |
+| **prompt-engineering-patterns** | Prompt optimization, few-shot learning, chain-of-thought |
+| **embedding-strategies** | Vector embeddings for semantic search |
+| **vector-index-tuning** | Vector database optimization |
+| **similarity-search-patterns** | Semantic similarity algorithms |
+| **hybrid-search-implementation** | Combining keyword + semantic search |
+| **llm-evaluation** | LLM output quality assessment |
+
+### Developer Essentials (`skill/developer-essentials/`)
+
+| Skill | Description |
+|-------|-------------|
+| **git-advanced-workflows** | Rebase, cherry-pick, bisect, worktrees, reflog |
+| **auth-implementation-patterns** | JWT, OAuth2, session management, security |
+| **error-handling-patterns** | Error handling across languages |
+| **e2e-testing-patterns** | End-to-end testing strategies |
+| **sql-optimization-patterns** | Query optimization, indexing |
+| **monorepo-management** | Monorepo tooling and workflows |
+| **bazel-build-optimization** | Bazel build system patterns |
+| **turborepo-caching** | Turborepo caching strategies |
+| **nx-workspace-patterns** | Nx monorepo patterns |
+
+### MLOps Skills (`skill/mlops/`)
+
+| Skill | Description |
+|-------|-------------|
+| **ml-pipeline-workflow** | End-to-end MLOps: data prep → training → deployment → monitoring |
 
 ### Using Skills
 
@@ -208,6 +264,18 @@ Specialized AI personas for different domains. Located in `.opencode/agent/`.
 | **Frontend Specialist** | `development/frontend-specialist.md` | UI, UX, components, styling |
 | **DevOps Specialist** | `development/devops-specialist.md` | CI/CD, deployment, containerization |
 | **Codebase Agent** | `development/codebase-agent.md` | Codebase understanding and navigation |
+| **Event Sourcing Architect** | `development/event-sourcing-architect.md` | Event sourcing, CQRS, saga orchestration |
+| **GraphQL Architect** | `development/graphql-architect.md` | GraphQL schema design, resolvers |
+| **TDD Orchestrator** | `development/tdd-orchestrator.md` | Test-driven development coordination |
+
+### Architecture Agents (NEW)
+
+| Agent | File | Description |
+|-------|------|-------------|
+| **C4 Context** | `architecture/c4-context.md` | System context diagrams |
+| **C4 Container** | `architecture/c4-container.md` | Container-level architecture |
+| **C4 Component** | `architecture/c4-component.md` | Component diagrams |
+| **C4 Code** | `architecture/c4-code.md` | Code-level documentation |
 
 ### Language Specialists
 
@@ -283,6 +351,8 @@ Specialized AI personas for different domains. Located in `.opencode/agent/`.
 
 Slash commands for common operations. Located in `.opencode/command/`.
 
+### Core Commands
+
 | Command | Description |
 |---------|-------------|
 | `/clean` | Format, lint, and clean up code (Prettier, ESLint, import sorting) |
@@ -295,6 +365,27 @@ Slash commands for common operations. Located in `.opencode/command/`.
 | `/worktrees` | Manage git worktrees for parallel development |
 | `/context` | Analyze and understand project context and structure |
 | `/build-context-system` | Create complete AI context architecture |
+
+### Incident Response Commands (NEW)
+
+| Command | Description |
+|---------|-------------|
+| `/smart-fix` | 4-phase AI-powered debugging: analysis → root cause → fix → verification |
+| `/incident-response` | Production incident triage and resolution workflow |
+
+### Agent Orchestration Commands (NEW)
+
+| Command | Description |
+|---------|-------------|
+| `/multi-agent-optimize` | Multi-agent performance optimization across system layers |
+| `/improve-agent` | Agent improvement and optimization workflow |
+
+### Architecture Commands (NEW)
+
+| Command | Description |
+|---------|-------------|
+| `/c4-architecture` | Generate C4 model documentation from code |
+| `/full-stack-feature` | End-to-end feature: backend → frontend → tests → security → deploy |
 
 ### Prompt Engineering Commands
 

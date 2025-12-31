@@ -143,6 +143,28 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $PROJECT_DIR/.opencode/hooks/notification.py --notify"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $PROJECT_DIR/.opencode/hooks/stop.py --notify"
+          }
+        ]
+      }
     ]
   },
 
