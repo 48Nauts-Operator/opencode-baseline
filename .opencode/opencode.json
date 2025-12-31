@@ -9,247 +9,164 @@
     "README.md"
   ],
 
-  "permissions": {
-    "allow": [
-      "Bash(mkdir:*)",
-      "Bash(uv:*)",
-      "Bash(find:*)",
-      "Bash(mv:*)",
-      "Bash(grep:*)",
-      "Bash(npm:*)",
-      "Bash(npx:*)",
-      "Bash(pnpm:*)",
-      "Bash(yarn:*)",
-      "Bash(bun:*)",
-      "Bash(ls:*)",
-      "Bash(cp:*)",
-      "Bash(cat:*)",
-      "Bash(docker:*)",
-      "Bash(docker-compose:*)",
-      "Bash(git:*)",
-      "Bash(gh:*)",
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(python:*)",
-      "Bash(python3:*)",
-      "Bash(pip:*)",
-      "Bash(pip3:*)",
-      "Bash(node:*)",
-      "Bash(deno:*)",
-      "Bash(cargo:*)",
-      "Bash(go:*)",
-      "Bash(make:*)",
-      "Bash(cmake:*)",
-      "Bash(chmod:*)",
-      "Bash(touch:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(wc:*)",
-      "Bash(sort:*)",
-      "Bash(uniq:*)",
-      "Bash(diff:*)",
-      "Bash(tree:*)",
-      "Bash(pwd:*)",
-      "Bash(echo:*)",
-      "Bash(date:*)",
-      "Bash(which:*)",
-      "Bash(env:*)",
-      "Bash(export:*)",
-      "Bash(source:*)",
-      "Bash(ruff:*)",
-      "Bash(eslint:*)",
-      "Bash(prettier:*)",
-      "Bash(tsc:*)",
-      "Bash(vitest:*)",
-      "Bash(jest:*)",
-      "Bash(pytest:*)",
-      "Write",
-      "Edit",
-      "Read",
-      "Glob",
-      "Grep"
-    ],
-    "deny": [
-      "Bash(rm -rf /*)",
-      "Bash(rm -rf ~/*)",
-      "Bash(rm -rf ./*)",
-      "Bash(sudo:*)",
-      "Bash(su:*)",
-      "Bash(kill -9:*)",
-      "Bash(pkill -9:*)",
-      "Bash(killall:*)",
-      "Bash(shutdown:*)",
-      "Bash(reboot:*)",
-      "Bash(halt:*)",
-      "Bash(> /dev/*)",
-      "Bash(dd:*)",
-      "Bash(mkfs:*)",
-      "Bash(fdisk:*)",
-      "Bash(parted:*)",
-      "Bash(docker system prune -a:*)",
-      "Bash(docker volume rm:*)",
-      "Bash(docker network rm:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(git clean -fd:*)",
-      "Bash(git push --force origin main:*)",
-      "Bash(git push --force origin master:*)",
-      "Bash(npm uninstall -g:*)",
-      "Bash(pip uninstall -y:*)",
-      "Bash(chmod 777:*)",
-      "Bash(chown -R:*)"
-    ],
-    "ask": [
-      "Bash(rm:*)",
-      "Bash(rmdir:*)",
-      "Bash(git push --force:*)",
-      "Bash(git rebase:*)",
-      "Bash(docker rmi:*)",
-      "Bash(docker rm:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(pip uninstall:*)"
-    ]
-  },
+  "plugin": ["hooks"],
 
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $PROJECT_DIR/.opencode/hooks/pre_tool_use.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $PROJECT_DIR/.opencode/hooks/post_tool_use.py"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $PROJECT_DIR/.opencode/hooks/session_start.py"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $PROJECT_DIR/.opencode/hooks/notification.py --notify"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $PROJECT_DIR/.opencode/hooks/stop.py --notify"
-          }
-        ]
-      }
-    ]
+  "permission": {
+    "edit": "allow",
+    "bash": {
+      "mkdir": "allow",
+      "uv": "allow",
+      "find": "allow",
+      "mv": "allow",
+      "grep": "allow",
+      "npm": "allow",
+      "npx": "allow",
+      "pnpm": "allow",
+      "yarn": "allow",
+      "bun": "allow",
+      "ls": "allow",
+      "cp": "allow",
+      "cat": "allow",
+      "docker": "allow",
+      "docker-compose": "allow",
+      "git status": "allow",
+      "git diff": "allow",
+      "git log": "allow",
+      "git branch": "allow",
+      "git checkout": "allow",
+      "git add": "allow",
+      "git commit": "allow",
+      "git pull": "allow",
+      "git fetch": "allow",
+      "git stash": "allow",
+      "git merge": "ask",
+      "git push": "ask",
+      "git push --force": "deny",
+      "git reset --hard": "deny",
+      "git clean": "ask",
+      "gh": "allow",
+      "curl": "allow",
+      "wget": "allow",
+      "python": "allow",
+      "python3": "allow",
+      "pip": "allow",
+      "pip3": "allow",
+      "node": "allow",
+      "deno": "allow",
+      "cargo": "allow",
+      "go": "allow",
+      "make": "allow",
+      "cmake": "allow",
+      "chmod": "allow",
+      "touch": "allow",
+      "head": "allow",
+      "tail": "allow",
+      "wc": "allow",
+      "sort": "allow",
+      "uniq": "allow",
+      "diff": "allow",
+      "tree": "allow",
+      "pwd": "allow",
+      "echo": "allow",
+      "date": "allow",
+      "which": "allow",
+      "env": "allow",
+      "ruff": "allow",
+      "eslint": "allow",
+      "prettier": "allow",
+      "tsc": "allow",
+      "vitest": "allow",
+      "jest": "allow",
+      "pytest": "allow",
+      "rm": "ask",
+      "rmdir": "ask",
+      "rm -rf": "deny",
+      "sudo": "deny",
+      "su": "deny",
+      "kill -9": "deny",
+      "pkill": "deny",
+      "killall": "deny",
+      "shutdown": "deny",
+      "reboot": "deny",
+      "dd": "deny",
+      "mkfs": "deny",
+      "fdisk": "deny"
+    },
+    "skill": "allow",
+    "webfetch": "allow",
+    "doom_loop": "ask",
+    "external_directory": "ask"
   },
 
   "mcp": {
-    "servers": {
-      "context7": {
-        "command": "npx",
-        "args": ["-y", "@upstash/context7-mcp@latest"],
-        "env": {},
-        "disabled": true,
-        "description": "Up-to-date code documentation for LLMs"
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": false
+    },
+    "github": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
+      "environment": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_TOKEN}"
       },
-      "github": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-github"],
-        "env": {
-          "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-        },
-        "disabled": true,
-        "description": "GitHub API integration"
+      "enabled": false
+    },
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "{env:PROJECT_DIR}"],
+      "environment": {},
+      "enabled": false
+    },
+    "memory": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-memory"],
+      "environment": {},
+      "enabled": false
+    },
+    "sequential-thinking": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "environment": {},
+      "enabled": false
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@anthropic/mcp-playwright"],
+      "environment": {},
+      "enabled": false
+    },
+    "exa": {
+      "type": "local",
+      "command": ["npx", "-y", "exa-mcp-server"],
+      "environment": {
+        "EXA_API_KEY": "{env:EXA_API_KEY}"
       },
-      "filesystem": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-filesystem", "${PROJECT_DIR}"],
-        "env": {},
-        "disabled": true,
-        "description": "Secure filesystem access"
+      "enabled": false
+    },
+    "slack": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-slack"],
+      "environment": {
+        "SLACK_BOT_TOKEN": "{env:SLACK_BOT_TOKEN}"
       },
-      "memory": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-memory"],
-        "env": {},
-        "disabled": true,
-        "description": "Persistent memory across sessions"
+      "enabled": false
+    },
+    "notion": {
+      "type": "local",
+      "command": ["npx", "-y", "@suekou/mcp-notion-server"],
+      "environment": {
+        "NOTION_API_KEY": "{env:NOTION_API_KEY}"
       },
-      "sequential-thinking": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-        "env": {},
-        "disabled": true,
-        "description": "Step-by-step reasoning"
+      "enabled": false
+    },
+    "postgres": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-postgres"],
+      "environment": {
+        "DATABASE_URL": "{env:DATABASE_URL}"
       },
-      "playwright": {
-        "command": "npx",
-        "args": ["-y", "@anthropic/mcp-playwright"],
-        "env": {},
-        "disabled": true,
-        "description": "Browser automation"
-      },
-      "exa": {
-        "command": "npx",
-        "args": ["-y", "exa-mcp-server"],
-        "env": {
-          "EXA_API_KEY": "${EXA_API_KEY}"
-        },
-        "disabled": true,
-        "description": "Web search and content extraction"
-      },
-      "slack": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-slack"],
-        "env": {
-          "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
-        },
-        "disabled": true,
-        "description": "Slack integration"
-      },
-      "notion": {
-        "command": "npx",
-        "args": ["-y", "@suekou/mcp-notion-server"],
-        "env": {
-          "NOTION_API_KEY": "${NOTION_API_KEY}"
-        },
-        "disabled": true,
-        "description": "Notion API integration"
-      },
-      "postgres": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-postgres"],
-        "env": {
-          "DATABASE_URL": "${DATABASE_URL}"
-        },
-        "disabled": true,
-        "description": "PostgreSQL database access"
-      }
+      "enabled": false
     }
   }
 }

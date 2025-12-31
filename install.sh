@@ -18,9 +18,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Config
-REPO_URL="https://github.com/48Nauts-Operator/opencode-baseline"
-BRANCH="main"
+# Config - UPDATE THIS URL to your fork/repo before publishing
+REPO_URL="${OPENCODE_BASELINE_REPO:-https://github.com/YOUR_ORG/opencode-baseline}"
+BRANCH="${OPENCODE_BASELINE_BRANCH:-main}"
 TEMP_DIR=$(mktemp -d)
 
 # Options
