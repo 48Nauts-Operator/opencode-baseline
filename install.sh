@@ -130,6 +130,13 @@ info "Installing .opencode directory..."
 cp -r "$TEMP_DIR/repo/.opencode" .
 success ".opencode installed"
 
+# Copy management scripts
+info "Installing management scripts..."
+cp "$TEMP_DIR/repo/update.sh" .
+cp "$TEMP_DIR/repo/uninstall.sh" .
+chmod +x update.sh uninstall.sh
+success "update.sh and uninstall.sh installed"
+
 # Copy OPENCODE.md
 if [[ "$INSTALL_OPENCODE_MD" = true ]]; then
   if [[ -f "OPENCODE.md" ]]; then
@@ -187,6 +194,8 @@ echo -e "${GREEN}═════════════════════
 echo ""
 echo "Installed:"
 echo "  .opencode/           - Agents, commands, skills, hooks"
+echo "  update.sh            - Update to latest version"
+echo "  uninstall.sh         - Remove opencode-baseline"
 [[ "$INSTALL_OPENCODE_MD" = true ]] && echo "  OPENCODE.md          - Project context template"
 [[ "$INSTALL_ENV" = true ]] && echo "  .env.example         - Environment template"
 [[ "$INSTALL_VOICE" = true ]] && echo "  Kokoro TTS           - Voice notifications (localhost:8880)"
