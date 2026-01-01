@@ -9,7 +9,7 @@
     "README.md"
   ],
 
-  "plugin": ["hooks"],
+
 
   "permission": {
     "edit": "allow",
