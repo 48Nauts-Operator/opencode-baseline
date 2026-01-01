@@ -1,0 +1,43 @@
+{
+  "name": "opencode-baseline-hooks",
+  "version": "0.3.0",
+  "description": "Security validation, logging, and Kokoro TTS voice notifications for OpenCode",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "opencode",
+    "claude",
+    "hooks",
+    "plugin",
+    "security",
+    "tts",
+    "kokoro",
+    "voice",
+    "notifications"
+  ],
+  "author": "48Nauts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/48Nauts-Operator/opencode-baseline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/48Nauts-Operator/opencode-baseline/issues"
+  },
+  "homepage": "https://github.com/48Nauts-Operator/opencode-baseline#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
