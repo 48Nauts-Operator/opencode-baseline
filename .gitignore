@@ -204,3 +204,10 @@ evals/results/*
 
 # User-generated task files
 tasks/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
