@@ -2,7 +2,8 @@
 
 > A production-ready template for OpenCode AI assistant with pre-configured agents, skills, commands, hooks, and context.
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![npm](https://img.shields.io/npm/v/opencode-baseline-hooks)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![OpenCode](https://img.shields.io/badge/OpenCode-Compatible-purple)
 
@@ -457,6 +458,29 @@ Hooks are configured in `.opencode/opencode.json`:
   }
 }
 ```
+
+### npm Package (Alternative)
+
+Install hooks as a standalone npm package with Kokoro TTS voice notifications:
+
+```bash
+npm install -g opencode-baseline-hooks
+```
+
+**Features:**
+- 🔊 Kokoro TTS voice announcements (session start, task complete, errors)
+- 🛡️ Security validation (blocks dangerous commands)
+- 📝 Tool usage logging to JSON files
+- 🔔 macOS notification fallback
+
+**Environment Variables:**
+```bash
+KOKORO_URL=http://localhost:8880    # Kokoro TTS endpoint
+KOKORO_VOICE=bf_emma                # Voice selection
+OPENCODE_VOICE=off                  # Disable voice entirely
+```
+
+**Package:** [npmjs.com/package/opencode-baseline-hooks](https://www.npmjs.com/package/opencode-baseline-hooks)
 
 ---
 
