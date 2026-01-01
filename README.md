@@ -2,7 +2,7 @@
 
 > A production-ready template for OpenCode AI assistant with pre-configured agents, skills, commands, hooks, and context.
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
 ![npm](https://img.shields.io/npm/v/opencode-baseline-hooks)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![OpenCode](https://img.shields.io/badge/OpenCode-Compatible-purple)
@@ -150,7 +150,7 @@ cat .opencode/opencode.json | head -20
 
 | Component | Count | Description |
 |-----------|-------|-------------|
-| **Skills** | 45 | Reusable workflows + domain knowledge (K8s, Security, LLM, MLOps, etc.) |
+| **Skills** | 55 | Reusable workflows + domain knowledge (K8s, Security, LLM, MLOps, Research, etc.) |
 | **Agents** | 35 | Specialized AI personas (language experts, DevOps, architecture, etc.) |
 | **Commands** | 18 | Slash commands for operations + incident response + orchestration |
 | **Hooks** | 3 | Lifecycle hooks (pre/post tool use, session start) |
@@ -158,6 +158,8 @@ cat .opencode/opencode.json | head -20
 | **Tools** | 4 | Custom tools (Gemini image editing, env management) |
 | **Context Files** | 20+ | Domain knowledge and standards |
 
+> **v0.4.0 Update**: Added 10 research skills from [GhostScientist/skills](https://github.com/GhostScientist/skills) - paper implementation, research workflows, and academic tools
+>
 > **v0.3.0 Update**: Added 27 new skills and 7 new agents from [wshobson/agents](https://github.com/wshobson/agents) (23k ⭐)
 
 ---
@@ -231,6 +233,21 @@ Reusable workflows that teach AI how to perform specific tasks. Located in `.ope
 | Skill | Description |
 |-------|-------------|
 | **ml-pipeline-workflow** | End-to-end MLOps: data prep → training → deployment → monitoring |
+
+### Research Skills (NEW - from [GhostScientist/skills](https://github.com/GhostScientist/skills))
+
+| Skill | Description |
+|-------|-------------|
+| **implement-paper-from-scratch** | Step-by-step guide to implementing research papers from scratch |
+| **paper-to-intuition** | Transform academic papers into deep, multi-layered understanding |
+| **research-question-refiner** | Refine vague research interests into concrete, tractable questions |
+| **research-taste-developer** | Develop intuition for what makes research "good" vs "incremental" |
+| **reviewer-2-simulator** | Critique paper drafts as a skeptical reviewer would |
+| **experiment-design-checklist** | Generate rigorous experiment designs with controls and metrics |
+| **turn-this-feature-into-a-blog-post** | Generate technical blog posts from code implementations |
+| **ios-app-icon-generator** | Generate complete iOS app icon sets with all required sizes |
+| **create-watchos-version** | Plan watchOS companion apps from existing iOS/macOS projects |
+| **hugging-face-space-deployer** | Deploy Hugging Face Spaces for ML models (Gradio, Streamlit) |
 
 ### Using Skills
 
