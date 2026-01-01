@@ -2,7 +2,7 @@
 
 > A production-ready template for OpenCode AI assistant with pre-configured agents, skills, commands, hooks, and context.
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.5.0-blue)
 ![npm](https://img.shields.io/npm/v/opencode-baseline-hooks)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![OpenCode](https://img.shields.io/badge/OpenCode-Compatible-purple)
@@ -31,7 +31,7 @@
 ### Prerequisites
 
 - **Git** - Required for cloning and updates
-- **Python 3** - Required for hooks
+- **Node.js 18+** - Required for hooks (TypeScript-based)
 - **OpenCode** - The AI assistant ([opencode.ai](https://opencode.ai))
 
 ### Quick Install (One-Line)
@@ -153,11 +153,13 @@ cat .opencode/opencode.json | head -20
 | **Skills** | 55 | Reusable workflows + domain knowledge (K8s, Security, LLM, MLOps, Research, etc.) |
 | **Agents** | 35 | Specialized AI personas (language experts, DevOps, architecture, etc.) |
 | **Commands** | 18 | Slash commands for operations + incident response + orchestration |
-| **Hooks** | 3 | Lifecycle hooks (pre/post tool use, session start) |
+| **Hooks** | 6 | Lifecycle hooks (pre/post tool, session, context monitor, pre-compact, prompt) |
 | **Plugins** | 3 | Extensions (agent validator, notifications) |
 | **Tools** | 4 | Custom tools (Gemini image editing, env management) |
 | **Context Files** | 20+ | Domain knowledge and standards |
 
+> **v0.5.0 Update**: Consolidated all hooks to TypeScript/npm package with 6 CLI commands: context monitoring, pre-compact backup, user prompt logging. No more Python dependency!
+>
 > **v0.4.0 Update**: Added 10 research skills from [GhostScientist/skills](https://github.com/GhostScientist/skills) - paper implementation, research workflows, and academic tools
 >
 > **v0.3.0 Update**: Added 27 new skills and 7 new agents from [wshobson/agents](https://github.com/wshobson/agents) (23k ⭐)
@@ -432,35 +434,50 @@ Slash commands for common operations. Located in `.opencode/command/`.
 
 ## Hooks
 
-Lifecycle hooks that run at specific points during AI sessions. Located in `.opencode/hooks/`.
+Lifecycle hooks that run at specific points during AI sessions. All hooks are TypeScript-based and bundled in the npm package.
 
 | Hook | When | Can Block | Purpose |
 |------|------|-----------|---------|
-| `pre_tool_use.py` | Before each tool call | Yes (exit 2) | Security validation, command blocking |
-| `post_tool_use.py` | After each tool call | No | Logging, metrics, error tracking |
-| `session_start.py` | Session begins | No | Load context, git status, GitHub issues |
+| `opencode-pre-tool` | Before each tool call | Yes (exit 2) | Security validation, command blocking |
+| `opencode-post-tool` | After each tool call | No | Logging, metrics, error tracking |
+| `opencode-session-start` | Session begins | No | Load context, git status, initialization |
+| `opencode-context-monitor` | On notifications | No | Track token usage, backup at thresholds |
+| `opencode-pre-compact` | Before compaction | No | Backup transcript and todos |
+| `opencode-user-prompt` | On user prompt | Yes (exit 2) | Log prompts, optional validation |
 
 ### Hook Features
 
-**pre_tool_use.py:**
-- Blocks dangerous commands (`rm -rf /`, sensitive file access)
-- Validates command safety before execution
-- Can prevent tool execution by exiting with code 2
+**Security (opencode-pre-tool):**
+- Blocks dangerous commands (`rm -rf /`, `sudo`, etc.)
+- Prevents access to sensitive files (`.env`, credentials)
+- Detects secrets in write operations (API keys, tokens)
+- Blocks dangerous git operations (force push to main)
 
-**post_tool_use.py:**
+**Logging (opencode-post-tool):**
 - Logs all tool usage to JSON files
-- Tracks errors and file changes
+- Tracks errors and daily statistics
 - Monitors session activity
 
-**session_start.py:**
-- Loads project context files
-- Fetches current git status
-- Retrieves GitHub issues (if configured)
-- Injects context into session
+**Context Management (opencode-context-monitor):**
+- Tracks cumulative token usage
+- Creates backups at 70% (warning) and 85% (critical)
+- Saves pending todos and recent prompts for recovery
+
+**Pre-Compact Backup (opencode-pre-compact):**
+- Backs up transcript before context compaction
+- Saves todos state for session recovery
+
+### Installation
+
+The hooks are included in the npm package:
+
+```bash
+npm install -g opencode-baseline-hooks
+```
 
 ### Configuration
 
-Hooks are configured in `.opencode/opencode.json`:
+Hooks are pre-configured in `.opencode/opencode.json` to use the local compiled files:
 
 ```json
 {
@@ -469,32 +486,35 @@ Hooks are configured in `.opencode/opencode.json`:
       "matcher": "",
       "hooks": [{
         "type": "command",
-        "command": "python3 $PROJECT_DIR/.opencode/hooks/pre_tool_use.py"
+        "command": "node $PROJECT_DIR/.opencode/npm-package/dist/cli/pre-tool-use.js"
       }]
     }]
   }
 }
 ```
 
-### npm Package (Alternative)
+Or use globally installed commands:
 
-Install hooks as a standalone npm package with Kokoro TTS voice notifications:
-
-```bash
-npm install -g opencode-baseline-hooks
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-pre-tool"
+      }]
+    }]
+  }
+}
 ```
-
-**Features:**
-- 🔊 Kokoro TTS voice announcements (session start, task complete, errors)
-- 🛡️ Security validation (blocks dangerous commands)
-- 📝 Tool usage logging to JSON files
-- 🔔 macOS notification fallback
 
 **Environment Variables:**
 ```bash
 KOKORO_URL=http://localhost:8880    # Kokoro TTS endpoint
 KOKORO_VOICE=bf_emma                # Voice selection
 OPENCODE_VOICE=off                  # Disable voice entirely
+PROJECT_DIR=/path/to/project        # Project root (auto-detected)
 ```
 
 **Package:** [npmjs.com/package/opencode-baseline-hooks](https://www.npmjs.com/package/opencode-baseline-hooks)

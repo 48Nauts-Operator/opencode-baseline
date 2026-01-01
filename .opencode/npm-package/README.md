@@ -1,13 +1,15 @@
 # opencode-baseline-hooks
 
-Security validation, logging, and Kokoro TTS voice notifications for OpenCode.
+Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode.
 
 ## Features
 
-- **Security**: Block dangerous `rm` commands and sensitive file access
+- **Security**: Block dangerous commands and sensitive file access
 - **Logging**: Track tool usage, file changes, errors, sessions
+- **Context Monitoring**: Track token usage, backup before context overflow
+- **Pre-Compact Backup**: Automatically backup state before context compaction
+- **Prompt Logging**: Log all user prompts for session recovery
 - **Voice**: Kokoro TTS announcements for task completion and alerts
-- **Fallback**: macOS notifications when Kokoro unavailable
 
 ## Installation
 
@@ -15,44 +17,131 @@ Security validation, logging, and Kokoro TTS voice notifications for OpenCode.
 npm install -g opencode-baseline-hooks
 ```
 
-## Configuration
+## CLI Commands
 
-Set environment variables to customize behavior:
+After global installation, these commands are available:
+
+| Command | Description |
+|---------|-------------|
+| `opencode-pre-tool` | Pre-tool validation (security checks) |
+| `opencode-post-tool` | Post-tool logging (errors, stats) |
+| `opencode-session-start` | Session initialization |
+| `opencode-pre-compact` | Pre-compaction backup |
+| `opencode-user-prompt` | User prompt logging |
+| `opencode-context-monitor` | Context/token monitoring |
+
+### Usage in opencode.json
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-pre-tool"
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-post-tool"
+      }]
+    }],
+    "SessionStart": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-session-start"
+      }]
+    }],
+    "PreCompact": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-pre-compact --backup --verbose"
+      }]
+    }],
+    "UserPromptSubmit": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-user-prompt --log-only --store-last-prompt"
+      }]
+    }],
+    "Notification": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-context-monitor"
+      }]
+    }]
+  }
+}
+```
+
+## Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `KOKORO_URL` | `http://localhost:8880` | Kokoro TTS API endpoint |
-| `KOKORO_VOICE` | `bf_emma` | Voice to use (British female) |
+| `KOKORO_VOICE` | `bf_emma` | Voice to use |
 | `OPENCODE_VOICE` | (enabled) | Set to `off` to disable voice |
+| `PROJECT_DIR` | (current dir) | Project root directory |
 
-## What It Does
+## Security Patterns Blocked
 
-### Pre-Tool Validation
+### Dangerous Commands
+- `rm -rf /`, recursive delete with dangerous paths
+- `sudo`, `su` commands
+- `chmod 777`, world-writable permissions
+- Piping curl/wget to shell
+- Docker system prune
+- Disk formatting commands
 
-Blocks dangerous operations before they execute:
+### Sensitive Files
+- `.env` (allows `.env.example`)
+- `credentials.json`, `secrets.json`
+- `.ssh/` directory, SSH keys
+- `.aws/credentials`, `.kube/config`
 
-- Recursive delete commands (`rm -rf`, etc.)
-- Access to sensitive files (`.env`, credentials, SSH keys)
+### Secret Detection (in writes)
+- AWS access keys
+- GitHub/GitLab tokens
+- Stripe keys
+- Private keys, JWTs
+- Database URLs with passwords
 
-### Post-Tool Logging
+## Context Monitoring
 
-Logs all tool usage to `.opencode/logs/`:
+The context monitor tracks cumulative token usage and creates backups at thresholds:
+- **70%**: Warning backup created
+- **85%**: Critical backup created
 
-- `pre_tool_use.json` - Tool calls with arguments
-- `post_tool_use.json` - Tool outputs
-- `errors.json` - Detected errors
-- `sessions.json` - Session lifecycle
+Backups include:
+- Current todos
+- Recent prompts
+- Session state
+- Recovery instructions
 
-### Voice Notifications
+Backups are stored in `.opencode/backup/`.
 
-When Kokoro TTS is running:
+## Log Files
 
-| Event | Announcement |
-|-------|--------------|
-| Session start | "OpenCode session started for {project}" |
-| Task complete | "Task complete after N minutes. Used N tools." |
-| Blocked command | "Blocked a dangerous command. Please review." |
-| Error | "An error occurred. Your attention is needed." |
+All logs are stored in `.opencode/logs/`:
+
+| File | Contents |
+|------|----------|
+| `pre_tool_use.json` | Tool calls with arguments |
+| `post_tool_use.json` | Tool outputs |
+| `blocked.json` | Blocked dangerous commands |
+| `errors.json` | Detected errors |
+| `sessions.json` | Session lifecycle |
+| `daily_stats.json` | Daily usage statistics |
+| `user_prompts.json` | User prompt history |
+| `context_state.json` | Current context state |
+| `messages.jsonl` | Message log for token tracking |
 
 ## Kokoro TTS Setup
 
@@ -62,23 +151,15 @@ Run Kokoro TTS locally with Docker:
 docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
 ```
 
-Or use your existing Kokoro instance by setting `KOKORO_URL`.
+## Plugin API
 
-## Security Patterns Blocked
+The package also exports a plugin for OpenCode's plugin system:
 
-### Dangerous Commands
-- `rm -rf /`
-- `rm -rf ~`
-- `rm -rf *`
-- Any recursive delete with force flag
+```typescript
+import plugin from "opencode-baseline-hooks"
 
-### Sensitive Files
-- `.env` (but allows `.env.example`)
-- `credentials.json`
-- `secrets.json`, `secrets.yaml`
-- `.ssh/` directory
-- `id_rsa` keys
-- `.aws/credentials`
+const hooks = await plugin({ directory: "/path/to/project" })
+```
 
 ## License
 
