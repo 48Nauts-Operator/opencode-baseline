@@ -1,6 +1,14 @@
 import type { Plugin } from "@opencode-ai/plugin"
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs"
 import { join, basename } from "path"
+import { exec } from "child_process"
+import { promisify } from "util"
+
+const execAsync = promisify(exec)
+
+const KOKORO_URL = process.env.KOKORO_URL || "http://localhost:8880"
+const KOKORO_VOICE = process.env.KOKORO_VOICE || "bf_emma"
+const VOICE_ENABLED = process.env.OPENCODE_VOICE !== "off"
 
 const DANGEROUS_RM_PATTERNS = [
   /\brm\s+.*-[a-z]*r[a-z]*f/i,
@@ -15,6 +23,7 @@ const SENSITIVE_FILE_PATTERNS: Array<[RegExp, string]> = [
   [/secrets?\.(json|yaml|yml)/i, "Access to secrets files is blocked."],
   [/\.ssh\//i, "Access to SSH directory is blocked."],
   [/id_rsa/i, "Access to SSH keys is blocked."],
+  [/\.aws\/credentials/i, "Access to AWS credentials is blocked."],
 ]
 
 function isDangerousRmCommand(command: string): boolean {
@@ -72,26 +81,82 @@ function appendLog(logPath: string, entry: Record<string, unknown>, maxEntries =
   }
 }
 
+async function speakWithKokoro(text: string, priority: "high" | "normal" = "normal"): Promise<void> {
+  if (!VOICE_ENABLED) return
+  
+  try {
+    const response = await fetch(`${KOKORO_URL}/v1/audio/speech`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "kokoro",
+        input: text,
+        voice: KOKORO_VOICE,
+        response_format: "mp3",
+        speed: priority === "high" ? 1.1 : 1.0,
+      }),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Kokoro API error: ${response.status}`)
+    }
+    
+    const audioBuffer = await response.arrayBuffer()
+    const tempFile = `/tmp/opencode_voice_${Date.now()}.mp3`
+    writeFileSync(tempFile, Buffer.from(audioBuffer))
+    
+    await execAsync(`afplay "${tempFile}" && rm "${tempFile}"`)
+  } catch {
+    // Voice is optional, fall back to macOS notification
+    try {
+      await execAsync(`osascript -e 'display notification "${text}" with title "OpenCode"'`)
+    } catch {
+      // Notifications also optional
+    }
+  }
+}
+
+async function notifyWithSound(message: string, useVoice = true): Promise<void> {
+  if (useVoice && VOICE_ENABLED) {
+    await speakWithKokoro(message)
+  } else {
+    try {
+      await execAsync(`osascript -e 'display notification "${message}" with title "OpenCode"'`)
+      await execAsync("afplay /System/Library/Sounds/Glass.aiff")
+    } catch {
+      // Optional
+    }
+  }
+}
+
 const plugin: Plugin = async ({ directory }) => {
+  let taskStartTime: number | null = null
+  let lastToolName = ""
+  let toolCount = 0
+  
   return {
     "tool.execute.before": async (input, output) => {
       const tool = input.tool
       const args = output.args as Record<string, unknown>
       
+      if (!taskStartTime) taskStartTime = Date.now()
+      toolCount++
+      lastToolName = tool
+      
       const logDir = ensureLogDir(directory)
       appendLog(join(logDir, "pre_tool_use.json"), { tool, args }, 1000)
       
-      // Block dangerous rm commands
       if (tool.toLowerCase() === "bash") {
         const command = String(args.command || "")
         if (isDangerousRmCommand(command)) {
+          await speakWithKokoro("Blocked a dangerous command. Please review.", "high")
           throw new Error(`BLOCKED: Dangerous rm command detected.\nCommand: ${command}\nUse safer alternatives or be more specific.`)
         }
       }
       
-      // Block sensitive file access
       const [isBlocked, reason] = isSensitiveFileAccess(tool, args)
       if (isBlocked) {
+        await speakWithKokoro("Access to sensitive file blocked.", "high")
         throw new Error(`BLOCKED: ${reason}`)
       }
     },
@@ -110,27 +175,65 @@ const plugin: Plugin = async ({ directory }) => {
         title: output.title,
         output: outputText 
       })
+      
+      const errorIndicators = ["error:", "failed:", "exception:", "fatal:"]
+      if (typeof outputText === "string") {
+        const lowerOutput = outputText.toLowerCase()
+        for (const indicator of errorIndicators) {
+          if (lowerOutput.includes(indicator)) {
+            appendLog(join(logDir, "errors.json"), {
+              tool,
+              output: outputText,
+              indicator,
+            }, 100)
+            break
+          }
+        }
+      }
     },
 
     event: async ({ event }) => {
       const logDir = ensureLogDir(directory)
+      const projectName = basename(directory)
       
       if (event.type === "session.created") {
         appendLog(join(logDir, "sessions.json"), {
           type: event.type,
           directory,
         }, 100)
+        
+        await speakWithKokoro(`OpenCode session started for ${projectName}.`)
       }
 
-      // macOS notification on session idle
       if (event.type === "session.idle") {
-        const projectName = basename(directory)
-        try {
-          const { exec } = await import("child_process")
-          exec(`osascript -e 'display notification "Task complete" with title "OpenCode - ${projectName}"'`)
-        } catch {
-          // Notifications are optional
+        const duration = taskStartTime 
+          ? Math.round((Date.now() - taskStartTime) / 1000) 
+          : 0
+        
+        let message = `Task complete in ${projectName}.`
+        if (duration > 60) {
+          const minutes = Math.floor(duration / 60)
+          message = `Task complete after ${minutes} minute${minutes > 1 ? 's' : ''}.`
         }
+        if (toolCount > 10) {
+          message += ` Used ${toolCount} tools.`
+        }
+        
+        await notifyWithSound(message, true)
+        
+        appendLog(join(logDir, "sessions.json"), {
+          type: "task.complete",
+          duration,
+          toolCount,
+          lastTool: lastToolName,
+        }, 100)
+        
+        taskStartTime = null
+        toolCount = 0
+      }
+
+      if (event.type === "session.error") {
+        await speakWithKokoro("An error occurred. Your attention is needed.", "high")
       }
     },
   }

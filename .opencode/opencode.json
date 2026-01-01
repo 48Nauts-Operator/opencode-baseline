@@ -1,5 +1,28 @@
 {
   "$schema": "https://opencode.ai/config.json",
+
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 $PROJECT_DIR/.opencode/hooks/pre_tool_use.py"
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 $PROJECT_DIR/.opencode/hooks/post_tool_use.py"
+      }]
+    }],
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "python3 $PROJECT_DIR/.opencode/hooks/session_start.py"
+      }]
+    }]
+  },
   
   "instructions": [
     "OPENCODE.md",
