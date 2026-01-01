@@ -1,7 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-
-  "plugins": ["./plugin/hooks.ts"],
   
   "instructions": [
     "OPENCODE.md",
