@@ -3,6 +3,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs"
 import { join, basename } from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
+import { homedir } from "os"
 
 const execAsync = promisify(exec)
 
@@ -57,7 +58,13 @@ function isSensitiveFileAccess(tool: string, args: Record<string, unknown>): [bo
 }
 
 function ensureLogDir(directory: string): string {
-  const logDir = join(directory, ".opencode", "logs")
+  // Fallback to ~/.opencode if directory is invalid (empty, root, or non-existent)
+  let baseDir = directory
+  if (!directory || directory === "/" || directory === "." || !existsSync(directory)) {
+    baseDir = join(homedir(), ".opencode")
+  }
+
+  const logDir = join(baseDir, ".opencode", "logs")
   if (!existsSync(logDir)) {
     mkdirSync(logDir, { recursive: true })
   }

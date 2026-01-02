@@ -28,7 +28,7 @@ type Hooks = {
     }) => Promise<void>;
 };
 type Plugin = (context: PluginContext) => Promise<Hooks>;
-declare function generateUsageGraph(logDir: string): string;
+declare function generateUsageGraph(logDir: string | any): string;
 declare const plugin: Plugin;
 export { generateUsageGraph };
 export default plugin;

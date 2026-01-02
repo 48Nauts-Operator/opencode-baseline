@@ -1,5 +1,6 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
+import { homedir } from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
 const execAsync = promisify(exec);
@@ -181,7 +182,36 @@ function estimateTokens(text) {
 // Logging Functions
 // ============================================================================
 function ensureLogDir(directory) {
-    const logDir = join(directory, ".opencode", "logs");
+    // Aggressively coerce to string and validate
+    let dirStr = "";
+    try {
+        if (typeof directory === "string") {
+            dirStr = directory;
+        }
+        else if (directory && typeof directory === "object" && directory.directory) {
+            dirStr = String(directory.directory);
+        }
+        else if (directory) {
+            dirStr = String(directory);
+        }
+    }
+    catch {
+        dirStr = "";
+    }
+    // Smart fallback: try current working directory first, then home directory
+    let baseDir = dirStr;
+    if (!baseDir || baseDir === "/" || baseDir === "." || baseDir === "[object Object]" || !existsSync(baseDir)) {
+        // Try to use current working directory (project-specific logs)
+        const cwd = process.cwd();
+        if (cwd && cwd !== "/" && existsSync(cwd)) {
+            baseDir = cwd;
+        }
+        else {
+            // Last resort: user's home directory
+            baseDir = join(homedir(), ".opencode");
+        }
+    }
+    const logDir = join(baseDir, ".opencode", "logs");
     if (!existsSync(logDir)) {
         mkdirSync(logDir, { recursive: true });
     }
@@ -256,8 +286,27 @@ function updateDailyStats(logDir, updates) {
     }
 }
 function generateUsageGraph(logDir) {
-    const statsPath = join(logDir, "daily_stats.json");
-    const graphPath = join(logDir, "usage_graph.html");
+    // Ensure logDir is a string
+    let logDirStr = "";
+    try {
+        if (typeof logDir === "string") {
+            logDirStr = logDir;
+        }
+        else if (logDir && typeof logDir === "object" && logDir.directory) {
+            logDirStr = String(logDir.directory);
+        }
+        else if (logDir) {
+            logDirStr = String(logDir);
+        }
+    }
+    catch {
+        logDirStr = "";
+    }
+    if (!logDirStr || logDirStr === "[object Object]") {
+        return "Invalid log directory provided.";
+    }
+    const statsPath = join(logDirStr, "daily_stats.json");
+    const graphPath = join(logDirStr, "usage_graph.html");
     try {
         if (!existsSync(statsPath)) {
             return "No usage data available yet.";
@@ -462,7 +511,18 @@ async function notifyWithSound(message, useVoice = true) {
 // ============================================================================
 // Plugin Export
 // ============================================================================
-const plugin = async ({ directory }) => {
+const plugin = async (context) => {
+    // Defensive: extract directory from context, handling various input formats
+    let directory;
+    if (typeof context === "string") {
+        directory = context;
+    }
+    else if (context && typeof context === "object") {
+        directory = context.directory || String(context);
+    }
+    else {
+        directory = String(context || "");
+    }
     let taskStartTime = null;
     let lastToolName = "";
     let toolCount = 0;
