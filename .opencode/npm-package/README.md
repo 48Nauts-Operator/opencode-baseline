@@ -1,6 +1,6 @@
 # opencode-baseline-hooks
 
-Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode.
+Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode and Claude Code.
 
 ## Features
 
@@ -17,20 +17,37 @@ Security validation, logging, context monitoring, and Kokoro TTS voice notificat
 npm install -g opencode-baseline-hooks
 ```
 
-## CLI Commands
+## Usage
 
-After global installation, these commands are available:
+> **IMPORTANT**: OpenCode and Claude Code use DIFFERENT configuration systems!
 
-| Command | Description |
-|---------|-------------|
-| `opencode-pre-tool` | Pre-tool validation (security checks) |
-| `opencode-post-tool` | Post-tool logging (errors, stats) |
-| `opencode-session-start` | Session initialization |
-| `opencode-pre-compact` | Pre-compaction backup |
-| `opencode-user-prompt` | User prompt logging |
-| `opencode-context-monitor` | Context/token monitoring |
+### For OpenCode (Plugin System)
 
-### Usage in opencode.json
+OpenCode uses a **plugin system**. Add to your `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "plugin": [
+    "opencode-baseline-hooks"
+  ]
+}
+```
+
+Or for project-level config in `.opencode/opencode.json`:
+
+```json
+{
+  "plugin": [
+    "opencode-baseline-hooks"
+  ]
+}
+```
+
+That's it! The plugin handles all hook events automatically.
+
+### For Claude Code (Hooks Config)
+
+Claude Code uses a **hooks config** with CLI commands. Add to `~/.claude/settings.json`:
 
 ```json
 {
@@ -80,6 +97,27 @@ After global installation, these commands are available:
   }
 }
 ```
+
+### Platform Comparison
+
+| Feature | OpenCode | Claude Code |
+|---------|----------|-------------|
+| Config file | `opencode.json` | `~/.claude/settings.json` |
+| Hook system | `"plugin": [...]` | `"hooks": { ... }` |
+| Hook format | TypeScript plugin | CLI commands |
+
+## CLI Commands
+
+These CLI commands are available after global installation (used by Claude Code):
+
+| Command | Description |
+|---------|-------------|
+| `opencode-pre-tool` | Pre-tool validation (security checks) |
+| `opencode-post-tool` | Post-tool logging (errors, stats) |
+| `opencode-session-start` | Session initialization |
+| `opencode-pre-compact` | Pre-compaction backup |
+| `opencode-user-prompt` | User prompt logging |
+| `opencode-context-monitor` | Context/token monitoring |
 
 ## Configuration
 
@@ -151,14 +189,20 @@ Run Kokoro TTS locally with Docker:
 docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
 ```
 
-## Plugin API
+## Plugin API (Programmatic)
 
-The package also exports a plugin for OpenCode's plugin system:
+The package exports a plugin for direct use:
 
 ```typescript
 import plugin from "opencode-baseline-hooks"
 
+// OpenCode plugin system calls this automatically
 const hooks = await plugin({ directory: "/path/to/project" })
+
+// Returns event handlers:
+// - hooks["tool.execute.before"] - Pre-tool security validation
+// - hooks["tool.execute.after"] - Post-tool logging
+// - hooks.event - Session events (created, idle, error)
 ```
 
 ## License

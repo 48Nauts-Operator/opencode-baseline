@@ -467,33 +467,51 @@ Lifecycle hooks that run at specific points during AI sessions. All hooks are Ty
 - Backs up transcript before context compaction
 - Saves todos state for session recovery
 
-### Installation
+### Installation & Configuration
 
-The hooks are included in the npm package:
+> **IMPORTANT**: OpenCode and Claude Code use DIFFERENT hook systems!
+
+#### For OpenCode (Recommended)
+
+OpenCode uses a **plugin system**. The hooks are bundled as a TypeScript plugin in `.opencode/plugin/hooks.ts`.
+
+**Option 1: Use the bundled plugin (default)**
+
+The plugin is pre-configured in `.opencode/opencode.json`:
+
+```json
+{
+  "plugin": [
+    "hooks"
+  ]
+}
+```
+
+This automatically loads `.opencode/plugin/hooks.ts` which provides all security, logging, and notification features.
+
+**Option 2: Install globally and add to user config**
 
 ```bash
 npm install -g opencode-baseline-hooks
 ```
 
-### Configuration
-
-Hooks are pre-configured in `.opencode/opencode.json` to use the local compiled files:
+Then add to `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "node $PROJECT_DIR/.opencode/npm-package/dist/cli/pre-tool-use.js"
-      }]
-    }]
-  }
+  "plugin": [
+    "opencode-baseline-hooks"
+  ]
 }
 ```
 
-Or use globally installed commands:
+#### For Claude Code
+
+Claude Code uses a **hooks config** with shell commands. Install the npm package and configure in `~/.claude/settings.json`:
+
+```bash
+npm install -g opencode-baseline-hooks
+```
 
 ```json
 {
@@ -504,18 +522,42 @@ Or use globally installed commands:
         "type": "command",
         "command": "opencode-pre-tool"
       }]
+    }],
+    "PostToolUse": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-post-tool"
+      }]
+    }],
+    "SessionStart": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "opencode-session-start"
+      }]
     }]
   }
 }
 ```
 
-**Environment Variables:**
+### Environment Variables
+
 ```bash
 KOKORO_URL=http://localhost:8880    # Kokoro TTS endpoint
 KOKORO_VOICE=bf_emma                # Voice selection
 OPENCODE_VOICE=off                  # Disable voice entirely
 PROJECT_DIR=/path/to/project        # Project root (auto-detected)
 ```
+
+### Platform Comparison
+
+| Feature | OpenCode | Claude Code |
+|---------|----------|-------------|
+| Config file | `opencode.json` | `~/.claude/settings.json` |
+| Hook system | `"plugin": ["hooks"]` | `"hooks": { "PreToolUse": [...] }` |
+| Hook format | TypeScript modules | Shell commands |
+| Installation | Bundled or npm plugin | npm + config |
 
 **Package:** [npmjs.com/package/opencode-baseline-hooks](https://www.npmjs.com/package/opencode-baseline-hooks)
 
