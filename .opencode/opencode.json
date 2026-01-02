@@ -9,9 +9,7 @@
     "README.md"
   ],
 
-  "plugin": [
-    "security-hooks"
-  ],
+  "plugin": [],
 
   "permission": {
     "edit": "allow",
