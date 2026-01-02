@@ -189,7 +189,7 @@ async function notifyWithSound(message: string, useVoice = true): Promise<void> 
   }
 }
 
-const plugin: Plugin = async (context) => {
+export const HooksPlugin: Plugin = async (context) => {
   // Defensive: extract directory from context, handling various input formats
   let directory: string
   if (typeof context === "string") {
@@ -309,4 +309,4 @@ const plugin: Plugin = async (context) => {
   }
 }
 
-export default plugin
+export default HooksPlugin
