@@ -10,7 +10,7 @@
   ],
 
   "plugin": [
-    "hooks"
+    "security-hooks"
   ],
 
   "permission": {
