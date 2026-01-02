@@ -336,7 +336,18 @@ function updateDailyStats(logDir: string, updates: Partial<UsageStats>): void {
   }
 }
 
-function generateUsageGraph(logDir: string): string {
+function generateUsageGraph(logDirOrContext: string | { directory?: string }): string {
+  // Handle both direct string path and context object from OpenCode
+  const logDir = typeof logDirOrContext === "string" 
+    ? logDirOrContext 
+    : logDirOrContext?.directory 
+      ? ensureLogDir(logDirOrContext.directory)
+      : null
+  
+  if (!logDir) {
+    return "Error: Invalid logDir parameter"
+  }
+  
   const statsPath = join(logDir, "daily_stats.json")
   const graphPath = join(logDir, "usage_graph.html")
   

@@ -255,7 +255,16 @@ function updateDailyStats(logDir, updates) {
         // Stats failures must not break execution
     }
 }
-function generateUsageGraph(logDir) {
+function generateUsageGraph(logDirOrContext) {
+    // Handle both direct string path and context object from OpenCode
+    const logDir = typeof logDirOrContext === "string"
+        ? logDirOrContext
+        : logDirOrContext?.directory
+            ? ensureLogDir(logDirOrContext.directory)
+            : null;
+    if (!logDir) {
+        return "Error: Invalid logDir parameter";
+    }
     const statsPath = join(logDir, "daily_stats.json");
     const graphPath = join(logDir, "usage_graph.html");
     try {
