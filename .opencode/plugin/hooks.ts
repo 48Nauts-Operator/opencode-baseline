@@ -7,6 +7,37 @@ import { homedir } from "os"
 
 const execAsync = promisify(exec)
 
+// Self-patch the hooks npm package to fix undefined method access bug
+function patchHooksPackage(): void {
+  try {
+    const hooksPath = join(homedir(), ".cache", "opencode", "node_modules", "hooks", "hooks.js")
+    if (!existsSync(hooksPath)) return
+
+    let content = readFileSync(hooksPath, "utf-8")
+
+    // Check if already patched
+    if (content.includes("Safety check: return early if method doesn't exist")) return
+
+    // Apply patch
+    content = content.replace(
+      /_lazySetupHooks: function \(proto, methodName, errorCb\) \{\s*if \('undefined' === typeof proto\[methodName\]\.numAsyncPres\) \{/,
+      `_lazySetupHooks: function (proto, methodName, errorCb) {
+    // Safety check: return early if method doesn't exist
+    if (!proto || !methodName || !proto[methodName]) {
+      return;
+    }
+    if ('undefined' === typeof proto[methodName].numAsyncPres) {`
+    )
+
+    writeFileSync(hooksPath, content)
+  } catch {
+    // Patching is optional, don't break if it fails
+  }
+}
+
+// Apply patch immediately when plugin loads
+patchHooksPackage()
+
 const KOKORO_URL = process.env.KOKORO_URL || "http://localhost:8880"
 const KOKORO_VOICE = process.env.KOKORO_VOICE || "bf_emma"
 const VOICE_ENABLED = process.env.OPENCODE_VOICE !== "off"
