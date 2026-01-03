@@ -673,7 +673,8 @@ const plugin = async (context) => {
                     type: event.type,
                     directory,
                 }, 100);
-                await speakWithKokoro(`OpenCode session started for ${projectName}.`);
+                // Session start announcement disabled - user preference
+                // Only announce errors and "needs input" messages
                 // Reset counters
                 taskStartTime = null;
                 toolCount = 0;
