@@ -241,7 +241,8 @@ export const HooksPlugin: Plugin = async (context) => {
           directory,
         }, 100)
         
-        await speakWithKokoro(`OpenCode session started for ${projectName}.`)
+        // Session start announcement disabled - user preference
+        // Only announce errors and "needs input" messages
       }
 
       if (event.type === "session.idle") {
