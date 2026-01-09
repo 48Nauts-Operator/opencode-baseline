@@ -1,43 +1,44 @@
 #!/usr/bin/env bash
 #
-# OpenCode Baseline Installer
+# OpenCode Baseline Installer v2.0
 # 
+# Supports:
+#   --global  (default) Install to ~/.config/opencode/ + ~/.claude/
+#   --init              Create project-specific files in current directory
+#   --project           Legacy: install to .opencode/ in current directory
+#
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/48Nauts-Operator/opencode-baseline/main/install.sh | bash
-#
-# Or with options:
-#   curl -fsSL ... | bash -s -- --no-env --no-opencode-md
 #
 
 set -e
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Config - UPDATE THIS URL to your fork/repo before publishing
 REPO_URL="${OPENCODE_BASELINE_REPO:-https://github.com/48Nauts-Operator/opencode-baseline}"
 BRANCH="${OPENCODE_BASELINE_BRANCH:-main}"
 TEMP_DIR=$(mktemp -d)
 
-# Options
-INSTALL_ENV=true
-INSTALL_OPENCODE_MD=true
+INSTALL_MODE="global"
 INSTALL_VOICE=true
 FORCE=false
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --no-env)
-      INSTALL_ENV=false
+    --global)
+      INSTALL_MODE="global"
       shift
       ;;
-    --no-opencode-md)
-      INSTALL_OPENCODE_MD=false
+    --init)
+      INSTALL_MODE="init"
+      shift
+      ;;
+    --project)
+      INSTALL_MODE="project"
       shift
       ;;
     --no-voice)
@@ -53,15 +54,18 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --help|-h)
-      echo "OpenCode Baseline Installer"
+      echo "OpenCode Baseline Installer v2.0"
       echo ""
       echo "Usage: curl -fsSL <url> | bash -s -- [options]"
       echo ""
+      echo "Install Modes:"
+      echo "  --global          Install globally (default) - ~/.config/opencode/ + ~/.claude/"
+      echo "  --init            Create project-specific files only (OPENCODE.md, AGENTS.md, context)"
+      echo "  --project         Legacy: install to .opencode/ in current directory"
+      echo ""
       echo "Options:"
-      echo "  --no-env          Don't copy .env.example"
-      echo "  --no-opencode-md  Don't copy OPENCODE.md template"
       echo "  --no-voice        Don't install Kokoro voice mode (Docker)"
-      echo "  --force, -f       Overwrite existing .opencode directory"
+      echo "  --force, -f       Overwrite existing directories"
       echo "  --branch, -b      Use specific branch (default: main)"
       echo "  --help, -h        Show this help"
       exit 0
@@ -73,138 +77,222 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Functions
-info() {
-  echo -e "${BLUE}[INFO]${NC} $1"
-}
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+success() { echo -e "${GREEN}[OK]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-success() {
-  echo -e "${GREEN}[OK]${NC} $1"
-}
-
-warn() {
-  echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-error() {
-  echo -e "${RED}[ERROR]${NC} $1"
-  exit 1
-}
-
-cleanup() {
-  rm -rf "$TEMP_DIR"
-}
-
+cleanup() { rm -rf "$TEMP_DIR"; }
 trap cleanup EXIT
 
-# Main
 echo ""
 echo -e "${BLUE}╔══════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   OpenCode Baseline Installer        ║${NC}"
+echo -e "${BLUE}║   OpenCode Baseline Installer v2.0   ║${NC}"
+echo -e "${BLUE}║   Mode: ${INSTALL_MODE}                          ${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if .opencode already exists
-if [[ -d ".opencode" ]]; then
-  if [[ "$FORCE" = true ]]; then
-    warn "Removing existing .opencode directory..."
-    rm -rf .opencode
-  else
-    error ".opencode directory already exists. Use --force to overwrite."
-  fi
-fi
-
-# Check for git
 if ! command -v git &> /dev/null; then
   error "git is required but not installed."
 fi
 
-# Clone repository
 info "Downloading from $REPO_URL (branch: $BRANCH)..."
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null || {
   error "Failed to clone repository. Check the URL and branch."
 }
 
-# Copy .opencode directory
-info "Installing .opencode directory..."
-cp -r "$TEMP_DIR/repo/.opencode" .
-success ".opencode installed"
+install_global() {
+  local opencode_dir="$HOME/.config/opencode"
+  local claude_dir="$HOME/.claude"
+  
+  info "Installing OpenCode baseline globally..."
+  
+  if [[ -d "$opencode_dir/skill" ]] && [[ "$FORCE" != true ]]; then
+    warn "~/.config/opencode/skill already exists. Use --force to overwrite."
+  fi
+  
+  mkdir -p "$opencode_dir"
+  mkdir -p "$claude_dir/skills"
+  mkdir -p "$claude_dir/commands"
+  
+  info "Installing to ~/.config/opencode/..."
+  
+  for dir in skill agent command tool plugin context prompts; do
+    if [[ -d "$TEMP_DIR/repo/global/opencode/$dir" ]]; then
+      cp -r "$TEMP_DIR/repo/global/opencode/$dir" "$opencode_dir/"
+      success "Installed $dir/"
+    elif [[ -d "$TEMP_DIR/repo/.opencode/$dir" ]]; then
+      cp -r "$TEMP_DIR/repo/.opencode/$dir" "$opencode_dir/"
+      success "Installed $dir/"
+    fi
+  done
+  
+  info "Installing to ~/.claude/..."
+  
+  if [[ -d "$TEMP_DIR/repo/global/claude-code/skills" ]]; then
+    cp -r "$TEMP_DIR/repo/global/claude-code/skills/"* "$claude_dir/skills/" 2>/dev/null || true
+    success "Installed Claude Code skills/"
+  elif [[ -d "$TEMP_DIR/repo/.opencode/skill" ]]; then
+    cp -r "$TEMP_DIR/repo/.opencode/skill/"* "$claude_dir/skills/" 2>/dev/null || true
+    success "Installed Claude Code skills/ (from OpenCode format)"
+  fi
+  
+  if [[ -d "$TEMP_DIR/repo/global/claude-code/commands" ]]; then
+    cp -r "$TEMP_DIR/repo/global/claude-code/commands/"* "$claude_dir/commands/" 2>/dev/null || true
+    success "Installed Claude Code commands/"
+  fi
+  
+  if [[ -d "$TEMP_DIR/repo/ralph" ]]; then
+    local ralph_dir="$opencode_dir/ralph"
+    mkdir -p "$ralph_dir"
+    cp -r "$TEMP_DIR/repo/ralph/"* "$ralph_dir/"
+    chmod +x "$ralph_dir/ralph.sh" 2>/dev/null || true
+    success "Installed Ralph autonomous loop to ~/.config/opencode/ralph/"
+  fi
+  
+  success "Global installation complete!"
+  echo ""
+  echo "Installed to:"
+  echo "  OpenCode: ~/.config/opencode/"
+  echo "  Claude:   ~/.claude/"
+  echo ""
+  echo "Skills and commands are now available in all projects!"
+}
 
-# Copy management scripts
-info "Installing management scripts..."
-cp "$TEMP_DIR/repo/update.sh" .
-cp "$TEMP_DIR/repo/uninstall.sh" .
-chmod +x update.sh uninstall.sh
-success "update.sh and uninstall.sh installed"
-
-# Copy OPENCODE.md
-if [[ "$INSTALL_OPENCODE_MD" = true ]]; then
-  if [[ -f "OPENCODE.md" ]]; then
-    warn "OPENCODE.md already exists, skipping (use as reference: $TEMP_DIR/repo/OPENCODE.md)"
+install_init() {
+  info "Initializing project-specific files..."
+  
+  if [[ -f "OPENCODE.md" ]] && [[ "$FORCE" != true ]]; then
+    warn "OPENCODE.md already exists, skipping."
   else
+    if [[ -f "$TEMP_DIR/repo/project-template/OPENCODE.md" ]]; then
+      cp "$TEMP_DIR/repo/project-template/OPENCODE.md" .
+    elif [[ -f "$TEMP_DIR/repo/OPENCODE.md" ]]; then
+      cp "$TEMP_DIR/repo/OPENCODE.md" .
+    fi
+    success "Created OPENCODE.md"
+  fi
+  
+  if [[ -f "AGENTS.md" ]] && [[ "$FORCE" != true ]]; then
+    warn "AGENTS.md already exists, skipping."
+  else
+    cat > AGENTS.md << 'AGENTS_EOF'
+# AGENTS.md - Project Learnings
+
+## Codebase Patterns
+<!-- Add patterns discovered during development -->
+
+## Gotchas
+<!-- Add things to watch out for -->
+
+## Testing Notes
+<!-- Add testing-specific guidance -->
+AGENTS_EOF
+    success "Created AGENTS.md"
+  fi
+  
+  mkdir -p .opencode/context/project
+  if [[ ! -f ".opencode/context/project/project-context.md" ]]; then
+    cat > .opencode/context/project/project-context.md << 'CTX_EOF'
+# Project Context
+
+## Overview
+<!-- Describe what this project does -->
+
+## Tech Stack
+<!-- List technologies used -->
+
+## Key Directories
+<!-- Explain the directory structure -->
+
+## Development Notes
+<!-- Add project-specific development guidance -->
+CTX_EOF
+    success "Created .opencode/context/project/project-context.md"
+  fi
+  
+  success "Project initialization complete!"
+  echo ""
+  echo "Created:"
+  echo "  OPENCODE.md                              - Project description for AI"
+  echo "  AGENTS.md                                - Learnings and patterns"
+  echo "  .opencode/context/project/               - Project-specific context"
+  echo ""
+  echo "Edit these files to customize AI behavior for your project."
+}
+
+install_project() {
+  info "Installing to current directory (legacy mode)..."
+  
+  if [[ -d ".opencode" ]] && [[ "$FORCE" != true ]]; then
+    error ".opencode directory already exists. Use --force to overwrite."
+  fi
+  
+  if [[ "$FORCE" = true ]] && [[ -d ".opencode" ]]; then
+    warn "Removing existing .opencode directory..."
+    rm -rf .opencode
+  fi
+  
+  cp -r "$TEMP_DIR/repo/.opencode" .
+  success ".opencode installed"
+  
+  if [[ -f "$TEMP_DIR/repo/OPENCODE.md" ]] && [[ ! -f "OPENCODE.md" ]]; then
     cp "$TEMP_DIR/repo/OPENCODE.md" .
-    success "OPENCODE.md template installed"
+    success "OPENCODE.md installed"
   fi
-fi
+  
+  cp "$TEMP_DIR/repo/update.sh" . 2>/dev/null || true
+  cp "$TEMP_DIR/repo/uninstall.sh" . 2>/dev/null || true
+  chmod +x update.sh uninstall.sh 2>/dev/null || true
+  
+  success "Project installation complete!"
+}
 
-# Copy .env.example
-if [[ "$INSTALL_ENV" = true ]]; then
-  if [[ -f ".env" ]]; then
-    warn ".env already exists, copying as .env.opencode-example"
-    cp "$TEMP_DIR/repo/.env.example" .env.opencode-example
-  elif [[ -f ".env.example" ]]; then
-    warn ".env.example already exists, merging may be needed"
-    cp "$TEMP_DIR/repo/.env.example" .env.opencode-example
-  else
-    cp "$TEMP_DIR/repo/.env.example" .env.example
-    success ".env.example installed"
+install_voice() {
+  if [[ "$INSTALL_VOICE" != true ]]; then
+    return
   fi
-fi
-
-# Install Kokoro Voice Mode (Docker)
-if [[ "$INSTALL_VOICE" = true ]]; then
+  
   info "Setting up Kokoro Voice Mode..."
   
   if ! command -v docker &> /dev/null; then
-    warn "Docker not found. Skipping Kokoro voice mode installation."
+    warn "Docker not found. Skipping Kokoro voice mode."
     warn "Install Docker and run: docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest"
-  else
-    if docker ps -a --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
-      info "Kokoro container exists, checking status..."
-      if docker ps --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
-        success "Kokoro voice mode already running"
-      else
-        info "Starting existing Kokoro container..."
-        docker start kokoro-tts
-        success "Kokoro voice mode started"
-      fi
-    else
-      info "Pulling and starting Kokoro TTS container..."
-      docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi-cpu:latest
-      success "Kokoro voice mode installed (localhost:8880)"
-    fi
+    return
   fi
-fi
+  
+  if docker ps -a --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
+    if docker ps --format '{{.Names}}' | grep -q '^kokoro-tts$'; then
+      success "Kokoro voice mode already running"
+    else
+      docker start kokoro-tts
+      success "Kokoro voice mode started"
+    fi
+  else
+    info "Pulling and starting Kokoro TTS container..."
+    docker run -d --name kokoro-tts -p 8880:8880 --restart unless-stopped ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    success "Kokoro voice mode installed (localhost:8880)"
+  fi
+}
 
-# Summary
+case "$INSTALL_MODE" in
+  global)
+    install_global
+    install_voice
+    ;;
+  init)
+    install_init
+    ;;
+  project)
+    install_project
+    install_voice
+    ;;
+esac
+
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo -e "${GREEN}  Installation complete!${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
-echo ""
-echo "Installed:"
-echo "  .opencode/           - Agents, commands, skills, hooks"
-echo "  update.sh            - Update to latest version"
-echo "  uninstall.sh         - Remove opencode-baseline"
-[[ "$INSTALL_OPENCODE_MD" = true ]] && echo "  OPENCODE.md          - Project context template"
-[[ "$INSTALL_ENV" = true ]] && echo "  .env.example         - Environment template"
-[[ "$INSTALL_VOICE" = true ]] && echo "  Kokoro TTS           - Voice notifications (localhost:8880)"
-echo ""
-echo "Next steps:"
-echo "  1. Edit OPENCODE.md with your project details"
-echo "  2. Copy .env.example to .env and add API keys"
-echo "  3. Set ENGINEER_NAME in .env for personalized voice"
-echo "  4. Customize .opencode/context/project/ for your needs"
 echo ""
 echo -e "Docs: ${BLUE}https://github.com/48Nauts-Operator/opencode-baseline${NC}"
 echo ""
