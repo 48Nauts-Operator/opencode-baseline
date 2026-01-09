@@ -44,6 +44,9 @@ curl -fsSL https://raw.githubusercontent.com/48Nauts-Operator/opencode-baseline/
 
 | Option | Description |
 |--------|-------------|
+| `--global` | Install to `~/.config/opencode/` (global for all projects) |
+| `--init` | Create project-specific files only (OPENCODE.md, AGENTS.md) |
+| `--project` | Install `.opencode/` to current project (legacy default) |
 | `--no-env` | Skip copying `.env.example` |
 | `--no-opencode-md` | Skip copying `OPENCODE.md` template |
 | `--force`, `-f` | Overwrite existing `.opencode` directory |
@@ -51,9 +54,19 @@ curl -fsSL https://raw.githubusercontent.com/48Nauts-Operator/opencode-baseline/
 
 ```bash
 # Examples
-curl -fsSL <url>/install.sh | bash -s -- --force
+curl -fsSL <url>/install.sh | bash -s -- --global    # Global install
+curl -fsSL <url>/install.sh | bash -s -- --init      # Project init only
+curl -fsSL <url>/install.sh | bash -s -- --force     # Force overwrite
 curl -fsSL <url>/install.sh | bash -s -- --branch develop --no-env
 ```
+
+### Global vs Project Install
+
+| Mode | Location | Use Case |
+|------|----------|----------|
+| `--global` | `~/.config/opencode/` | Skills available in ALL projects |
+| `--project` | `./.opencode/` | Project-specific customization |
+| `--init` | `./OPENCODE.md`, `./AGENTS.md` | Add context files to existing project |
 
 ### Manual Install
 
@@ -158,6 +171,8 @@ cat .opencode/opencode.json | head -20
 | **Tools** | 4 | Custom tools (Gemini image editing, env management) |
 | **Context Files** | 20+ | Domain knowledge and standards |
 
+> **v0.6.0 Update**: Added 7 amp-skills from [snarktank/amp-skills](https://github.com/snarktank/amp-skills), Ralph autonomous loop system, global install support, and 12 Claude Code commands
+>
 > **v0.5.0 Update**: Consolidated all hooks to TypeScript/npm package with 6 CLI commands: context monitoring, pre-compact backup, user prompt logging. No more Python dependency!
 >
 > **v0.4.0 Update**: Added 10 research skills from [GhostScientist/skills](https://github.com/GhostScientist/skills) - paper implementation, research workflows, and academic tools
@@ -169,6 +184,18 @@ cat .opencode/opencode.json | head -20
 ## Skills
 
 Reusable workflows that teach AI how to perform specific tasks. Located in `.opencode/skill/`.
+
+### Amp Skills (NEW - from [snarktank/amp-skills](https://github.com/snarktank/amp-skills))
+
+| Skill | Description | Trigger Phrases |
+|-------|-------------|-----------------|
+| **prd** | Generate Product Requirements Documents | "create a prd", "plan this feature", "requirements for" |
+| **ralph** | Convert PRDs to JSON for autonomous execution | "convert this prd", "ralph json", "turn this into ralph format" |
+| **dev-browser** | Browser automation with persistent page state | "go to [url]", "click on", "screenshot", "scrape" |
+| **compound-engineering** | Plan -> Work -> Review -> Compound development loop | "plan this feature", "systematic development" |
+| **docx** | Word document creation, editing, tracked changes | Work with .docx files |
+| **pdf** | PDF manipulation: extract, merge, split, create | Work with PDF files |
+| **frontend-design** | Create distinctive UI/UX interfaces (anti-AI-slop) | "build web component", "create page" |
 
 ### Core Skills
 
@@ -261,7 +288,74 @@ Skills are invoked automatically based on context or explicitly:
 
 # Create a skill
 "Use skill-creator to build a deployment skill"
+
+# Create a PRD
+/prd Create a user authentication system
+
+# Convert PRD to Ralph JSON
+/ralph Convert my PRD to JSON format
 ```
+
+---
+
+## Ralph Autonomous Loop
+
+Ralph is an autonomous AI agent loop that executes user stories from a PRD one at a time. Located in `ralph/`.
+
+### How It Works
+
+1. Create a PRD using the `/prd` skill
+2. Convert to JSON using the `/ralph` skill (creates `prd.json`)
+3. Run `ralph.sh` to autonomously execute each user story
+
+### Usage
+
+```bash
+# Navigate to your project
+cd your-project
+
+# Run Ralph (auto-detects amp/opencode/claude CLI)
+~/.config/opencode/ralph/ralph.sh
+
+# With max iterations limit
+~/.config/opencode/ralph/ralph.sh 20
+```
+
+### Ralph Files
+
+| File | Description |
+|------|-------------|
+| `ralph.sh` | Universal adapter script (works with amp, opencode, claude) |
+| `prompt.md` | Agent instructions for each iteration |
+| `prd.json.example` | Example PRD format |
+
+### PRD Format
+
+```json
+{
+  "project": "MyApp",
+  "branchName": "ralph/feature-name",
+  "description": "Feature description",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Story title",
+      "description": "As a user, I want...",
+      "acceptanceCriteria": ["Criterion 1", "Criterion 2"],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
+```
+
+### Key Principles
+
+- **One story per iteration**: Ralph spawns fresh context each time
+- **Stories must be small**: Completable in one context window
+- **Dependency order**: Schema -> Backend -> UI
+- **Browser verification**: UI stories require dev-browser verification
 
 ---
 
@@ -428,6 +522,34 @@ Slash commands for common operations. Located in `.opencode/command/`.
 
 # Clean and format
 /clean
+```
+
+---
+
+## Claude Code Commands (NEW)
+
+Additional commands for Claude Code users. Located in `global/claude-code/commands/`.
+
+| Command | Description |
+|---------|-------------|
+| `/five-whys` | Root cause analysis using Five Whys methodology |
+| `/design-review` | Comprehensive design review of git changes |
+| `/lyra` | AI prompt optimization specialist |
+| `/utrathink` | Multi-agent orchestration (4 sub-agents) |
+| `/analyze-issue` | GitHub issue to implementation spec |
+| `/refactor` | Code refactoring with best practices |
+| `/commit-fast` | Conventional commits with smart staging |
+| `/tdd` | Test-Driven Development enforcement |
+| `/prompt_sec` | Security audit for APIs |
+| `/reload` | Reload project memory from CLAUDE.md |
+| `/analyse_codebase` | Full codebase analysis and documentation |
+| `/clean` | Code cleanup, formatting, linting |
+
+### Installation for Claude Code
+
+```bash
+# Copy commands to Claude Code config
+cp -r global/claude-code/commands/* ~/.claude/commands/
 ```
 
 ---
@@ -771,6 +893,22 @@ Three permission levels:
 
 ```
 .
+├── global/                    # For global installs
+│   ├── opencode/              # -> ~/.config/opencode/
+│   │   └── skill/             # Global skills (amp-skills)
+│   └── claude-code/           # -> ~/.claude/
+│       └── commands/          # Claude Code commands
+│
+├── ralph/                     # Autonomous AI agent loop
+│   ├── ralph.sh               # Universal adapter script
+│   ├── prompt.md              # Agent instructions
+│   └── prd.json.example       # Example PRD format
+│
+├── project-template/          # For --init flag
+│   ├── OPENCODE.md            # Project description template
+│   ├── AGENTS.md              # Learnings template
+│   └── .opencode/context/project/
+│
 ├── .opencode/
 │   ├── opencode.json          # Main configuration
 │   ├── VERSION                # Version number
