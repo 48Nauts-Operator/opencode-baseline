@@ -127,6 +127,52 @@ These CLI commands are available after global installation (used by Claude Code)
 | `KOKORO_VOICE` | `bf_emma` | Voice to use |
 | `OPENCODE_VOICE` | (enabled) | Set to `off` to disable voice |
 | `PROJECT_DIR` | (current dir) | Project root directory |
+| `NOTIFICATION_MODE` | `verbose` | `verbose`, `smart`, or `quiet` |
+| `NOTIFICATION_SPEAK` | `completion,error` | Categories to speak in smart mode |
+
+## Smart Notifications (v0.7.0)
+
+Control notification behavior to reduce voice spam while staying informed.
+
+### Notification Modes
+
+| Mode | Behavior |
+|------|----------|
+| `verbose` | Speak every notification (original behavior) |
+| `smart` | Aggregate blocked commands, speak summary on completion |
+| `quiet` | Visual notifications only (macOS notification center) |
+
+### Smart Mode Categories
+
+Set `NOTIFICATION_SPEAK` to customize which events trigger voice (comma-separated):
+
+- `completion` - Task completion summaries
+- `error` - Errors requiring attention
+- `blocked` - Blocked commands (aggregated in smart mode)
+- `build` - Build success/failure
+- `test` - Test results
+- `warning` - Warnings
+
+### Example: Reduced Noise Setup
+
+```bash
+export NOTIFICATION_MODE=smart
+export NOTIFICATION_SPEAK=completion,error
+```
+
+**Before (verbose mode):**
+```
+"Blocked writing secrets to file"
+"Blocked writing secrets to file"
+"Access to sensitive file blocked"
+"Build completed successfully"
+"Task complete"
+```
+
+**After (smart mode):**
+```
+"MyProject: completed after 5 minutes. 3 commands blocked. Build success."
+```
 
 ## Security Patterns Blocked
 

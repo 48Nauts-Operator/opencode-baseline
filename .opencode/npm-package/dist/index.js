@@ -13,6 +13,10 @@ const VOICE_ENABLED = process.env.OPENCODE_VOICE !== "off";
 // Cost estimation (approximate, based on Claude 3.5 Sonnet pricing)
 const COST_PER_1K_INPUT_TOKENS = 0.003;
 const COST_PER_1K_OUTPUT_TOKENS = 0.015;
+const NOTIFICATION_MODE = process.env.NOTIFICATION_MODE || "verbose";
+const NOTIFICATION_SPEAK_CATEGORIES = new Set((process.env.NOTIFICATION_SPEAK || "completion,error")
+    .split(",")
+    .map(s => s.trim()));
 // ============================================================================
 // Security Patterns
 // ============================================================================
@@ -462,6 +466,99 @@ function generateUsageGraph(logDir) {
 // ============================================================================
 // Voice/Notification Functions
 // ============================================================================
+function shouldSpeakCategory(category) {
+    if (NOTIFICATION_MODE === "quiet")
+        return false;
+    if (NOTIFICATION_MODE === "verbose")
+        return true;
+    return NOTIFICATION_SPEAK_CATEGORIES.has(category);
+}
+function shouldAggregateCategory(category) {
+    if (NOTIFICATION_MODE !== "smart")
+        return false;
+    return ["blocked", "warning"].includes(category);
+}
+async function visualNotificationOnly(message) {
+    try {
+        const escaped = message.replace(/"/g, '\\"').replace(/'/g, "'");
+        await execAsync(`osascript -e 'display notification "${escaped}" with title "OpenCode"'`);
+    }
+    catch {
+        // Visual notifications are optional
+    }
+}
+async function smartNotify(text, category, priority = "normal", aggregatedState, projectName) {
+    const prefixedText = projectName ? `${projectName}: ${text}` : text;
+    if (NOTIFICATION_MODE === "quiet") {
+        await visualNotificationOnly(prefixedText);
+        return;
+    }
+    if (shouldAggregateCategory(category) && aggregatedState) {
+        if (category === "blocked") {
+            aggregatedState.blockedCount++;
+            if (!aggregatedState.blockedReasons.includes(text)) {
+                aggregatedState.blockedReasons.push(text);
+            }
+        }
+        else if (category === "warning") {
+            aggregatedState.warningCount++;
+        }
+        await visualNotificationOnly(prefixedText);
+        return;
+    }
+    if (shouldSpeakCategory(category)) {
+        await speakWithKokoro(prefixedText, priority);
+    }
+    else {
+        await visualNotificationOnly(prefixedText);
+    }
+}
+function buildCompletionSummary(projectName, duration, cost, aggregatedState) {
+    const parts = [];
+    if (duration > 60) {
+        const mins = Math.floor(duration / 60);
+        parts.push(`completed after ${mins} minute${mins > 1 ? "s" : ""}`);
+    }
+    else {
+        parts.push("completed");
+    }
+    if (NOTIFICATION_MODE === "smart") {
+        if (aggregatedState.blockedCount > 0) {
+            const n = aggregatedState.blockedCount;
+            parts.push(`${n} command${n > 1 ? "s" : ""} blocked`);
+        }
+        if (aggregatedState.buildResult) {
+            parts.push(`build ${aggregatedState.buildResult}`);
+        }
+        if (aggregatedState.testResult) {
+            parts.push(`tests ${aggregatedState.testResult}`);
+        }
+        if (aggregatedState.warningCount > 0) {
+            const n = aggregatedState.warningCount;
+            parts.push(`${n} warning${n > 1 ? "s" : ""}`);
+        }
+    }
+    if (cost > 0.01) {
+        parts.push(`cost $${cost.toFixed(2)}`);
+    }
+    return `${projectName}: ${parts.join(". ")}.`;
+}
+function createAggregatedState() {
+    return {
+        blockedCount: 0,
+        blockedReasons: [],
+        buildResult: null,
+        testResult: null,
+        warningCount: 0,
+    };
+}
+function resetAggregatedState(state) {
+    state.blockedCount = 0;
+    state.blockedReasons = [];
+    state.buildResult = null;
+    state.testResult = null;
+    state.warningCount = 0;
+}
 async function speakWithKokoro(text, priority = "normal") {
     if (!VOICE_ENABLED)
         return;
@@ -512,7 +609,6 @@ async function notifyWithSound(message, useVoice = true) {
 // Plugin Export
 // ============================================================================
 const plugin = async (context) => {
-    // Defensive: extract directory from context, handling various input formats
     let directory;
     if (typeof context === "string") {
         directory = context;
@@ -529,7 +625,9 @@ const plugin = async (context) => {
     let sessionTokens = 0;
     let lastActivityTime = Date.now();
     let longTaskWarningGiven = false;
+    const aggregatedState = createAggregatedState();
     const logDir = ensureLogDir(directory);
+    const projectName = basename(directory);
     return {
         "tool.execute.before": async (input, output) => {
             const tool = input.tool;
@@ -549,30 +647,26 @@ const plugin = async (context) => {
             // Check for dangerous bash commands
             if (tool.toLowerCase() === "bash") {
                 const command = String(args.command || "");
-                // Check rm commands
                 if (isDangerousRmCommand(command)) {
                     updateDailyStats(logDir, { blockedCommands: 1 });
-                    await speakWithKokoro("Blocked a dangerous remove command.", "high");
+                    await smartNotify("Blocked dangerous rm command", "blocked", "high", aggregatedState, projectName);
                     throw new Error(`BLOCKED: Dangerous rm command detected.\nCommand: ${command}\nUse safer alternatives or be more specific.`);
                 }
-                // Check other dangerous commands
                 const [isDangerous, dangerReason] = checkDangerousCommand(command);
                 if (isDangerous) {
                     updateDailyStats(logDir, { blockedCommands: 1 });
-                    await speakWithKokoro("Blocked a dangerous command.", "high");
+                    await smartNotify("Blocked dangerous command", "blocked", "high", aggregatedState, projectName);
                     throw new Error(`BLOCKED: ${dangerReason}\nCommand: ${command}`);
                 }
-                // Check git commands
                 const [isGitDangerous, gitReason, gitAction] = checkGitCommand(command);
                 if (isGitDangerous) {
                     if (gitAction === "block") {
                         updateDailyStats(logDir, { blockedCommands: 1 });
-                        await speakWithKokoro("Blocked a dangerous git command.", "high");
+                        await smartNotify("Blocked dangerous git command", "blocked", "high", aggregatedState, projectName);
                         throw new Error(`BLOCKED: ${gitReason}\nCommand: ${command}`);
                     }
                     else {
-                        // Warn but allow
-                        await speakWithKokoro(`Warning: ${gitReason}`, "normal");
+                        await smartNotify(`Warning: ${gitReason}`, "warning", "normal", aggregatedState, projectName);
                         appendLog(join(logDir, "warnings.json"), {
                             type: "git_warning",
                             command,
@@ -581,20 +675,18 @@ const plugin = async (context) => {
                     }
                 }
             }
-            // Check for sensitive file access
             const [isBlocked, reason] = isSensitiveFileAccess(tool, args);
             if (isBlocked) {
                 updateDailyStats(logDir, { blockedCommands: 1 });
-                await speakWithKokoro("Access to sensitive file blocked.", "high");
+                await smartNotify("Blocked sensitive file access", "blocked", "high", aggregatedState, projectName);
                 throw new Error(`BLOCKED: ${reason}`);
             }
-            // Check for secrets in write operations
             if (["write", "edit"].includes(tool.toLowerCase())) {
                 const content = String(args.content || args.newString || "");
                 const secrets = detectSecrets(content);
                 if (secrets.length > 0) {
                     updateDailyStats(logDir, { blockedCommands: 1 });
-                    await speakWithKokoro("Blocked writing secrets to file.", "high");
+                    await smartNotify("Blocked writing secrets to file", "blocked", "high", aggregatedState, projectName);
                     throw new Error(`BLOCKED: Potential secrets detected in content:\n- ${secrets.join("\n- ")}\n\nUse environment variables instead.`);
                 }
             }
@@ -632,27 +724,28 @@ const plugin = async (context) => {
                         break;
                     }
                 }
-                // Announce build/test results
                 if (tool.toLowerCase() === "bash") {
                     const command = String(output.args.command || "").toLowerCase();
-                    // Build results
                     if (command.includes("npm run build") || command.includes("yarn build") ||
                         command.includes("tsc") || command.includes("make")) {
                         if (lowerOutput.includes("error") || lowerOutput.includes("failed")) {
-                            await speakWithKokoro("Build failed. Check the errors.", "high");
+                            aggregatedState.buildResult = "failed";
+                            await smartNotify("Build failed", "build", "high", aggregatedState, projectName);
                         }
                         else if (lowerOutput.includes("successfully") || lowerOutput.includes("compiled")) {
-                            await speakWithKokoro("Build completed successfully.", "normal");
+                            aggregatedState.buildResult = "success";
+                            await smartNotify("Build succeeded", "build", "normal", aggregatedState, projectName);
                         }
                     }
-                    // Test results
                     if (command.includes("npm test") || command.includes("yarn test") ||
                         command.includes("pytest") || command.includes("jest")) {
                         if (lowerOutput.includes("failed") || lowerOutput.includes("error")) {
-                            await speakWithKokoro("Tests failed.", "high");
+                            aggregatedState.testResult = "failed";
+                            await smartNotify("Tests failed", "test", "high", aggregatedState, projectName);
                         }
                         else if (lowerOutput.includes("passed") || lowerOutput.includes("success")) {
-                            await speakWithKokoro("All tests passed.", "normal");
+                            aggregatedState.testResult = "success";
+                            await smartNotify("Tests passed", "test", "normal", aggregatedState, projectName);
                         }
                     }
                 }
@@ -666,52 +759,48 @@ const plugin = async (context) => {
             }
         },
         event: async ({ event }) => {
-            const projectName = basename(directory);
             if (event.type === "session.created") {
                 updateDailyStats(logDir, { sessions: 1 });
                 appendLog(join(logDir, "sessions.json"), {
                     type: event.type,
                     directory,
                 }, 100);
-                // Session start announcement disabled - user preference
-                // Only announce errors and "needs input" messages
-                // Reset counters
+                if (NOTIFICATION_MODE === "verbose") {
+                    await smartNotify(`Session started for ${projectName}`, "session", "normal", aggregatedState, projectName);
+                }
                 taskStartTime = null;
                 toolCount = 0;
                 sessionTokens = 0;
                 longTaskWarningGiven = false;
+                resetAggregatedState(aggregatedState);
             }
             if (event.type === "session.idle") {
                 const duration = taskStartTime
                     ? Math.round((Date.now() - taskStartTime) / 1000)
                     : 0;
-                // Calculate session cost
                 const sessionCost = (sessionTokens / 1000) *
                     ((COST_PER_1K_INPUT_TOKENS + COST_PER_1K_OUTPUT_TOKENS) / 2);
-                let message = `Task complete.`;
-                if (duration > 60) {
-                    const minutes = Math.floor(duration / 60);
-                    message = `Task complete after ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-                }
-                if (sessionCost > 0.01) {
-                    message += ` Estimated cost: ${sessionCost.toFixed(2)} dollars.`;
-                }
-                await notifyWithSound(message, true);
+                const summaryMessage = buildCompletionSummary(projectName, duration, sessionCost, aggregatedState);
+                await smartNotify(summaryMessage, "completion", "normal", aggregatedState);
                 appendLog(join(logDir, "sessions.json"), {
                     type: "task.complete",
                     duration,
                     toolCount,
                     estimatedTokens: sessionTokens,
                     estimatedCost: sessionCost,
+                    blockedCount: aggregatedState.blockedCount,
+                    buildResult: aggregatedState.buildResult,
+                    testResult: aggregatedState.testResult,
                 }, 100);
                 taskStartTime = null;
                 toolCount = 0;
                 sessionTokens = 0;
                 longTaskWarningGiven = false;
+                resetAggregatedState(aggregatedState);
             }
             if (event.type === "session.error") {
                 updateDailyStats(logDir, { errors: 1 });
-                await speakWithKokoro("An error occurred. Your attention is needed.", "high");
+                await smartNotify("An error occurred. Your attention is needed.", "error", "high", aggregatedState, projectName);
             }
             // Generate usage graph on request (can be triggered by a command)
             if (event.type === "usage.graph") {

@@ -1,7 +1,7 @@
 {
   "name": "opencode-baseline-hooks",
-  "version": "0.6.0",
-  "description": "Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode",
+  "version": "0.7.0",
+  "description": "Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode with smart notification aggregation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -25,7 +25,8 @@
     "tts",
     "kokoro",
     "voice",
-    "notifications"
+    "notifications",
+    "smart-notifications"
   ],
   "author": "48Nauts",
   "license": "MIT",
