@@ -758,7 +758,13 @@ const plugin: Plugin = async (context) => {
   return {
     "tool.execute.before": async (input, output) => {
       const tool = input.tool
-      const args = output.args as Record<string, unknown>
+      const args = (
+        output && typeof output === "object" && output.args
+          ? (output.args as Record<string, unknown>)
+          : input && typeof input === "object" && input.args
+            ? (input.args as Record<string, unknown>)
+            : {}
+      )
       
       if (!taskStartTime) taskStartTime = Date.now()
       toolCount++
@@ -864,8 +870,35 @@ const plugin: Plugin = async (context) => {
           }
         }
         
-        if (tool.toLowerCase() === "bash") {
-          const command = String((output.args as Record<string, unknown>).command || "").toLowerCase()
+        const getCommand = (): string => {
+          if (tool.toLowerCase() !== "bash") {
+            return ""
+          }
+
+          const inputArgs =
+            input && typeof input === "object" && input.args && typeof input.args === "object"
+              ? (input.args as Record<string, unknown>)
+              : undefined
+
+          if (inputArgs && typeof inputArgs.command === "string") {
+            return inputArgs.command
+          }
+
+          const outputArgs =
+            output && typeof output === "object" && output.args && typeof output.args === "object"
+              ? (output.args as Record<string, unknown>)
+              : undefined
+
+          if (outputArgs && typeof outputArgs.command === "string") {
+            return outputArgs.command
+          }
+
+          return ""
+        }
+
+        const rawCommand = getCommand()
+        if (rawCommand) {
+          const command = rawCommand.toLowerCase()
           
           if (command.includes("npm run build") || command.includes("yarn build") || 
               command.includes("tsc") || command.includes("make")) {

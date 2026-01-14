@@ -11,6 +11,12 @@ Security validation, logging, context monitoring, and Kokoro TTS voice notificat
 - **Prompt Logging**: Log all user prompts for session recovery
 - **Voice**: Kokoro TTS announcements for task completion and alerts
 
+## What's new in v0.8.0
+
+- Hardened Bash command detection so the plugin no longer crashes when `output.args` is missing (fixes the `TypeError: undefined is not an object (evaluating 'output.args.command')` failure mode)
+- Published a rebuilt npm package so both global installations and per-project dependencies can consume the fix immediately
+- Build stays compatible with v0.7.0’s smart notification aggregation so we can continue implementing the queue/channel phases without tool crashes
+
 ## Installation
 
 ```bash

@@ -1,7 +1,7 @@
 {
   "name": "opencode-baseline-hooks",
-  "version": "0.7.0",
-  "description": "Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode with smart notification aggregation",
+  "version": "0.8.0",
+  "description": "Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -46,7 +46,8 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "opencode-baseline-hooks": "^0.8.0",
+    "typescript": "^5.0.0"
   }
 }
