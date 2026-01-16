@@ -11,11 +11,19 @@ Security validation, logging, context monitoring, and Kokoro TTS voice notificat
 - **Prompt Logging**: Log all user prompts for session recovery
 - **Voice**: Kokoro TTS announcements for task completion and alerts
 
-## What's new in v0.8.0
+## What's new in v0.9.0
 
-- Hardened Bash command detection so the plugin no longer crashes when `output.args` is missing (fixes the `TypeError: undefined is not an object (evaluating 'output.args.command')` failure mode)
+- **Smart Notification Queue**: Priority-based queue with configurable channels and personas
+- **Quiet Hours**: Suppress non-critical notifications during specified hours (e.g., `NOTIFY_QUIET_HOURS=22:00-07:00`)
+- **Message Coalescing**: Duplicate messages in same category are automatically coalesced
+- **Retry Logic**: Critical/blocked notifications retry on delivery failure
+- **Persona System**: Different voices/prefixes for ops_sentry, concierge, and default personas
+- **Channel Fallback**: Notifications can route through local-speaker or visual-only channels
+
+### v0.8.0
+
+- Hardened Bash command detection so the plugin no longer crashes when `output.args` is missing
 - Published a rebuilt npm package so both global installations and per-project dependencies can consume the fix immediately
-- Build stays compatible with v0.7.0’s smart notification aggregation so we can continue implementing the queue/channel phases without tool crashes
 
 ## Installation
 
@@ -135,6 +143,14 @@ These CLI commands are available after global installation (used by Claude Code)
 | `PROJECT_DIR` | (current dir) | Project root directory |
 | `NOTIFICATION_MODE` | `verbose` | `verbose`, `smart`, or `quiet` |
 | `NOTIFICATION_SPEAK` | `completion,error` | Categories to speak in smart mode |
+| `NOTIFY_MAX_QUEUE` | `20` | Maximum notifications in queue |
+| `NOTIFY_MIN_GAP_MS` | `750` | Minimum ms between notifications |
+| `NOTIFY_QUIET_HOURS` | (none) | Quiet hours ranges (e.g., `22:00-07:00,12:00-13:00`) |
+| `NOTIFY_COALESCE_CATEGORIES` | `info,warning` | Categories to coalesce duplicates |
+| `NOTIFY_RETRY_CATEGORIES` | `critical,blocked` | Categories to retry on failure |
+| `NOTIFY_MAX_RETRIES` | `2` | Max retry attempts per notification |
+| `NOTIFY_PERSONA_OPS_VOICE` | (default) | Voice for ops_sentry persona |
+| `NOTIFY_PERSONA_CONCIERGE_VOICE` | (default) | Voice for concierge persona |
 
 ## Smart Notifications (v0.7.0)
 

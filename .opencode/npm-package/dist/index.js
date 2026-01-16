@@ -13,8 +13,119 @@ const VOICE_ENABLED = process.env.OPENCODE_VOICE !== "off";
 // Cost estimation (approximate, based on Claude 3.5 Sonnet pricing)
 const COST_PER_1K_INPUT_TOKENS = 0.003;
 const COST_PER_1K_OUTPUT_TOKENS = 0.015;
+// ============================================================================
+// Queue Helper Functions
+// ============================================================================
+/**
+ * Parse time string "HH:MM" to minutes since midnight
+ */
+function parseTimeToMinutes(time) {
+    if (!time || typeof time !== "string")
+        return -1;
+    const parts = time.split(":");
+    if (parts.length !== 2)
+        return -1;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    if (isNaN(hours) || isNaN(minutes))
+        return -1;
+    return hours * 60 + minutes;
+}
+/**
+ * Check if current time is within quiet hours
+ */
+function isInQuietHours(quietHoursRanges) {
+    if (quietHoursRanges.length === 0)
+        return false;
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    for (const range of quietHoursRanges) {
+        if (range.startMinutes < 0 || range.endMinutes < 0)
+            continue;
+        // Handle ranges that cross midnight (e.g., 22:00 - 07:00)
+        if (range.startMinutes > range.endMinutes) {
+            if (currentMinutes >= range.startMinutes || currentMinutes < range.endMinutes) {
+                return true;
+            }
+        }
+        else {
+            if (currentMinutes >= range.startMinutes && currentMinutes < range.endMinutes) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 const NOTIFICATION_MODE = process.env.NOTIFICATION_MODE || "verbose";
-const NOTIFICATION_SPEAK_CATEGORIES = new Set((process.env.NOTIFICATION_SPEAK || "completion,error")
+const MAX_QUEUE_LENGTH = Number(process.env.NOTIFY_MAX_QUEUE || 20);
+const MIN_NOTIFICATION_GAP_MS = Number(process.env.NOTIFY_MIN_GAP_MS || 750);
+const COALESCE_CATEGORIES = new Set((process.env.NOTIFY_COALESCE_CATEGORIES || "info,warning")
+    .split(",")
+    .map((s) => s.trim()));
+const RETRY_CATEGORIES = new Set((process.env.NOTIFY_RETRY_CATEGORIES || "critical,blocked")
+    .split(",")
+    .map((s) => s.trim()));
+const MAX_RETRY_ATTEMPTS = Number(process.env.NOTIFY_MAX_RETRIES || 2);
+const QUIET_HOURS = (process.env.NOTIFY_QUIET_HOURS || "")
+    .split(",")
+    .map((range) => range.trim())
+    .filter(Boolean)
+    .map((range) => {
+    const [start, end] = range.split("-");
+    return { start, end };
+});
+const PERSONA_REGISTRY = {
+    default: { name: "default" },
+    ops_sentry: {
+        name: "ops_sentry",
+        voice: process.env.NOTIFY_PERSONA_OPS_VOICE || KOKORO_VOICE,
+        prefix: "Alert",
+    },
+    concierge: {
+        name: "concierge",
+        voice: process.env.NOTIFY_PERSONA_CONCIERGE_VOICE || KOKORO_VOICE,
+        prefix: "Heads-up",
+    },
+};
+const DEFAULT_CATEGORY_CONFIGS = {
+    critical: { enabled: true, priority: 100, channel: "local-speaker", persona: "ops_sentry" },
+    blocked: { enabled: true, priority: 90, channel: "local-speaker", persona: "ops_sentry" },
+    error: { enabled: true, priority: 90, channel: "local-speaker", persona: "ops_sentry" },
+    build: { enabled: true, priority: 70, channel: "local-speaker", persona: "default" },
+    test: { enabled: true, priority: 60, channel: "local-speaker", persona: "default" },
+    completion: { enabled: true, priority: 50, channel: "local-speaker", persona: "concierge" },
+    session: { enabled: true, priority: 40, channel: "local-speaker", persona: "concierge" },
+    warning: { enabled: true, priority: 30, channel: "visual-only", persona: "default" },
+    info: { enabled: false, priority: 20, channel: "visual-only", persona: "default" },
+};
+function getBoolEnv(key, fallback) {
+    const value = process.env[key];
+    if (value === undefined)
+        return fallback;
+    return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+function buildCategoryConfigs() {
+    const configs = {
+        ...DEFAULT_CATEGORY_CONFIGS,
+    };
+    for (const category of Object.keys(configs)) {
+        const upper = category.toUpperCase();
+        const enabledKey = `NOTIFY_${upper}`;
+        const channelKey = `NOTIFY_CHANNEL_${upper}`;
+        const personaKey = `NOTIFY_PERSONA_${upper}`;
+        const priorityKey = `NOTIFY_PRIORITY_${upper}`;
+        configs[category] = {
+            ...configs[category],
+            enabled: getBoolEnv(enabledKey, configs[category].enabled),
+            channel: process.env[channelKey] || configs[category].channel,
+            persona: process.env[personaKey] || configs[category].persona,
+            priority: Number(process.env[priorityKey] || configs[category].priority),
+        };
+    }
+    return configs;
+}
+const CATEGORY_CONFIGS = buildCategoryConfigs();
+const NOTIFICATION_SPEAK_CATEGORIES = new Set((process.env.NOTIFICATION_SPEAK || "critical,completion,error")
     .split(",")
     .map(s => s.trim()));
 // ============================================================================
@@ -628,7 +739,103 @@ const plugin = async (context) => {
     const aggregatedState = createAggregatedState();
     const logDir = ensureLogDir(directory);
     const projectName = basename(directory);
-    return {
+    const quietHoursRanges = QUIET_HOURS.map(({ start, end }) => ({
+        startMinutes: parseTimeToMinutes(start),
+        endMinutes: parseTimeToMinutes(end),
+    }));
+    const notificationQueue = [];
+    let queueProcessing = false;
+    let lastNotificationTime = 0;
+    const recentByCategory = new Map();
+    async function sendThroughChannel(entry) {
+        const persona = PERSONA_REGISTRY[entry.persona] || PERSONA_REGISTRY.default;
+        const prefix = persona.prefix ? `${persona.prefix}: ` : "";
+        const fullMessage = `${prefix}${entry.message}`;
+        if (entry.channel === "local-speaker") {
+            if (persona.voice) {
+                const previous = process.env.KOKORO_VOICE;
+                try {
+                    process.env.KOKORO_VOICE = persona.voice;
+                    await speakWithKokoro(fullMessage);
+                }
+                finally {
+                    process.env.KOKORO_VOICE = previous;
+                }
+            }
+            else {
+                await speakWithKokoro(fullMessage);
+            }
+        }
+        else {
+            await visualNotificationOnly(fullMessage);
+        }
+    }
+    async function processNotificationQueue() {
+        if (queueProcessing)
+            return;
+        queueProcessing = true;
+        while (notificationQueue.length > 0) {
+            const now = Date.now();
+            const gap = now - lastNotificationTime;
+            if (gap < MIN_NOTIFICATION_GAP_MS) {
+                await new Promise((resolve) => setTimeout(resolve, MIN_NOTIFICATION_GAP_MS - gap));
+            }
+            const entry = notificationQueue.shift();
+            try {
+                await sendThroughChannel(entry);
+                lastNotificationTime = Date.now();
+            }
+            catch (error) {
+                if (RETRY_CATEGORIES.has(entry.category) && entry.retries < MAX_RETRY_ATTEMPTS) {
+                    notificationQueue.unshift({ ...entry, retries: entry.retries + 1, lastAttempt: Date.now() });
+                }
+                else {
+                    appendLog(join(logDir, "notifications.jsonl"), {
+                        type: "delivery_error",
+                        entry,
+                        error: error instanceof Error ? error.message : String(error),
+                    }, 100);
+                }
+            }
+        }
+        queueProcessing = false;
+    }
+    async function notify(message, category, metadata) {
+        const config = CATEGORY_CONFIGS[category];
+        if (!config.enabled)
+            return;
+        if (isInQuietHours(quietHoursRanges) && category !== "critical") {
+            appendLog(join(logDir, "notifications.jsonl"), {
+                type: "quiet_hours_suppressed",
+                category,
+                message,
+            }, 100);
+            return;
+        }
+        const last = recentByCategory.get(category);
+        if (last && category !== "critical") {
+            if (COALESCE_CATEGORIES.has(category) && last.message === message) {
+                return;
+            }
+        }
+        const entry = {
+            message,
+            category,
+            priority: config.priority,
+            persona: config.persona,
+            channel: config.channel,
+            metadata,
+            retries: 0,
+        };
+        notificationQueue.push(entry);
+        notificationQueue.sort((a, b) => b.priority - a.priority);
+        if (notificationQueue.length > MAX_QUEUE_LENGTH) {
+            notificationQueue.pop();
+        }
+        recentByCategory.set(category, { message, timestamp: Date.now() });
+        await processNotificationQueue();
+    }
+    const hooks = {
         "tool.execute.before": async (input, output) => {
             const tool = input.tool;
             const args = (output && typeof output === "object" && output.args
@@ -835,6 +1042,7 @@ const plugin = async (context) => {
             }
         },
     };
+    return hooks;
 };
 // Export graph generator for CLI usage
 export { generateUsageGraph };
