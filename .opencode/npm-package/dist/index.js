@@ -129,6 +129,17 @@ const NOTIFICATION_SPEAK_CATEGORIES = new Set((process.env.NOTIFICATION_SPEAK ||
     .split(",")
     .map(s => s.trim()));
 // ============================================================================
+// Global Notification Queue (shared across all plugin instances)
+// ============================================================================
+const globalNotificationQueue = [];
+let globalQueueProcessing = false;
+let globalLastNotificationTime = 0;
+const globalRecentByCategory = new Map();
+const globalQuietHoursRanges = QUIET_HOURS.map(({ start, end }) => ({
+    startMinutes: parseTimeToMinutes(start),
+    endMinutes: parseTimeToMinutes(end),
+}));
+// ============================================================================
 // Security Patterns
 // ============================================================================
 // Dangerous rm patterns
@@ -739,14 +750,6 @@ const plugin = async (context) => {
     const aggregatedState = createAggregatedState();
     const logDir = ensureLogDir(directory);
     const projectName = basename(directory);
-    const quietHoursRanges = QUIET_HOURS.map(({ start, end }) => ({
-        startMinutes: parseTimeToMinutes(start),
-        endMinutes: parseTimeToMinutes(end),
-    }));
-    const notificationQueue = [];
-    let queueProcessing = false;
-    let lastNotificationTime = 0;
-    const recentByCategory = new Map();
     async function sendThroughChannel(entry) {
         const persona = PERSONA_REGISTRY[entry.persona] || PERSONA_REGISTRY.default;
         const prefix = persona.prefix ? `${persona.prefix}: ` : "";
@@ -771,23 +774,23 @@ const plugin = async (context) => {
         }
     }
     async function processNotificationQueue() {
-        if (queueProcessing)
+        if (globalQueueProcessing)
             return;
-        queueProcessing = true;
-        while (notificationQueue.length > 0) {
+        globalQueueProcessing = true;
+        while (globalNotificationQueue.length > 0) {
             const now = Date.now();
-            const gap = now - lastNotificationTime;
+            const gap = now - globalLastNotificationTime;
             if (gap < MIN_NOTIFICATION_GAP_MS) {
                 await new Promise((resolve) => setTimeout(resolve, MIN_NOTIFICATION_GAP_MS - gap));
             }
-            const entry = notificationQueue.shift();
+            const entry = globalNotificationQueue.shift();
             try {
                 await sendThroughChannel(entry);
-                lastNotificationTime = Date.now();
+                globalLastNotificationTime = Date.now();
             }
             catch (error) {
                 if (RETRY_CATEGORIES.has(entry.category) && entry.retries < MAX_RETRY_ATTEMPTS) {
-                    notificationQueue.unshift({ ...entry, retries: entry.retries + 1, lastAttempt: Date.now() });
+                    globalNotificationQueue.unshift({ ...entry, retries: entry.retries + 1, lastAttempt: Date.now() });
                 }
                 else {
                     appendLog(join(logDir, "notifications.jsonl"), {
@@ -798,13 +801,13 @@ const plugin = async (context) => {
                 }
             }
         }
-        queueProcessing = false;
+        globalQueueProcessing = false;
     }
     async function notify(message, category, metadata) {
         const config = CATEGORY_CONFIGS[category];
         if (!config.enabled)
             return;
-        if (isInQuietHours(quietHoursRanges) && category !== "critical") {
+        if (isInQuietHours(globalQuietHoursRanges) && category !== "critical") {
             appendLog(join(logDir, "notifications.jsonl"), {
                 type: "quiet_hours_suppressed",
                 category,
@@ -812,7 +815,7 @@ const plugin = async (context) => {
             }, 100);
             return;
         }
-        const last = recentByCategory.get(category);
+        const last = globalRecentByCategory.get(category);
         if (last && category !== "critical") {
             if (COALESCE_CATEGORIES.has(category) && last.message === message) {
                 return;
@@ -827,12 +830,12 @@ const plugin = async (context) => {
             metadata,
             retries: 0,
         };
-        notificationQueue.push(entry);
-        notificationQueue.sort((a, b) => b.priority - a.priority);
-        if (notificationQueue.length > MAX_QUEUE_LENGTH) {
-            notificationQueue.pop();
+        globalNotificationQueue.push(entry);
+        globalNotificationQueue.sort((a, b) => b.priority - a.priority);
+        if (globalNotificationQueue.length > MAX_QUEUE_LENGTH) {
+            globalNotificationQueue.pop();
         }
-        recentByCategory.set(category, { message, timestamp: Date.now() });
+        globalRecentByCategory.set(category, { message, timestamp: Date.now() });
         await processNotificationQueue();
     }
     const hooks = {

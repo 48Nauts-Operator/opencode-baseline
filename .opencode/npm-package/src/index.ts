@@ -248,6 +248,19 @@ const NOTIFICATION_SPEAK_CATEGORIES = new Set<NotificationCategory>(
     .map(s => s.trim() as NotificationCategory)
 )
 
+// ============================================================================
+// Global Notification Queue (shared across all plugin instances)
+// ============================================================================
+
+const globalNotificationQueue: QueuedNotification[] = []
+let globalQueueProcessing = false
+let globalLastNotificationTime = 0
+const globalRecentByCategory = new Map<NotificationCategory, { message: string; timestamp: number }>()
+const globalQuietHoursRanges = QUIET_HOURS.map(({ start, end }) => ({
+  startMinutes: parseTimeToMinutes(start),
+  endMinutes: parseTimeToMinutes(end),
+}))
+
 // Aggregation state for smart mode
 interface AggregatedNotificationState {
   blockedCount: number
@@ -924,16 +937,6 @@ const plugin: Plugin = async (context) => {
   const logDir = ensureLogDir(directory)
   const projectName = basename(directory)
 
-  const quietHoursRanges = QUIET_HOURS.map(({ start, end }) => ({
-    startMinutes: parseTimeToMinutes(start),
-    endMinutes: parseTimeToMinutes(end),
-  }))
-
-  const notificationQueue: QueuedNotification[] = []
-  let queueProcessing = false
-  let lastNotificationTime = 0
-  const recentByCategory = new Map<NotificationCategory, { message: string; timestamp: number }>()
-
   async function sendThroughChannel(entry: QueuedNotification): Promise<void> {
     const persona = PERSONA_REGISTRY[entry.persona] || PERSONA_REGISTRY.default
     const prefix = persona.prefix ? `${persona.prefix}: ` : ""
@@ -957,23 +960,23 @@ const plugin: Plugin = async (context) => {
   }
 
   async function processNotificationQueue(): Promise<void> {
-    if (queueProcessing) return
-    queueProcessing = true
+    if (globalQueueProcessing) return
+    globalQueueProcessing = true
 
-    while (notificationQueue.length > 0) {
+    while (globalNotificationQueue.length > 0) {
       const now = Date.now()
-      const gap = now - lastNotificationTime
+      const gap = now - globalLastNotificationTime
       if (gap < MIN_NOTIFICATION_GAP_MS) {
         await new Promise((resolve) => setTimeout(resolve, MIN_NOTIFICATION_GAP_MS - gap))
       }
 
-      const entry = notificationQueue.shift()!
+      const entry = globalNotificationQueue.shift()!
       try {
         await sendThroughChannel(entry)
-        lastNotificationTime = Date.now()
+        globalLastNotificationTime = Date.now()
       } catch (error) {
         if (RETRY_CATEGORIES.has(entry.category) && entry.retries < MAX_RETRY_ATTEMPTS) {
-          notificationQueue.unshift({ ...entry, retries: entry.retries + 1, lastAttempt: Date.now() })
+          globalNotificationQueue.unshift({ ...entry, retries: entry.retries + 1, lastAttempt: Date.now() })
         } else {
           appendLog(join(logDir, "notifications.jsonl"), {
             type: "delivery_error",
@@ -984,7 +987,7 @@ const plugin: Plugin = async (context) => {
       }
     }
 
-    queueProcessing = false
+    globalQueueProcessing = false
   }
 
   async function notify(
@@ -995,7 +998,7 @@ const plugin: Plugin = async (context) => {
     const config = CATEGORY_CONFIGS[category]
     if (!config.enabled) return
 
-    if (isInQuietHours(quietHoursRanges) && category !== "critical") {
+    if (isInQuietHours(globalQuietHoursRanges) && category !== "critical") {
       appendLog(join(logDir, "notifications.jsonl"), {
         type: "quiet_hours_suppressed",
         category,
@@ -1004,7 +1007,7 @@ const plugin: Plugin = async (context) => {
       return
     }
 
-    const last = recentByCategory.get(category)
+    const last = globalRecentByCategory.get(category)
     if (last && category !== "critical") {
       if (COALESCE_CATEGORIES.has(category) && last.message === message) {
         return
@@ -1021,14 +1024,14 @@ const plugin: Plugin = async (context) => {
       retries: 0,
     }
 
-    notificationQueue.push(entry)
-    notificationQueue.sort((a, b) => b.priority - a.priority)
+    globalNotificationQueue.push(entry)
+    globalNotificationQueue.sort((a: QueuedNotification, b: QueuedNotification) => b.priority - a.priority)
 
-    if (notificationQueue.length > MAX_QUEUE_LENGTH) {
-      notificationQueue.pop()
+    if (globalNotificationQueue.length > MAX_QUEUE_LENGTH) {
+      globalNotificationQueue.pop()
     }
 
-    recentByCategory.set(category, { message, timestamp: Date.now() })
+    globalRecentByCategory.set(category, { message, timestamp: Date.now() })
 
     await processNotificationQueue()
   }

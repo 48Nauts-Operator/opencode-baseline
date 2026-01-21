@@ -11,6 +11,46 @@ Security validation, logging, context monitoring, and Kokoro TTS voice notificat
 - **Prompt Logging**: Log all user prompts for session recovery
 - **Voice**: Kokoro TTS announcements for task completion and alerts
 
+## Troubleshooting
+
+### If OpenCode Won't Start After Plugin Update
+
+If the plugin crashes OpenCode on startup, you can fix it without launching OpenCode:
+
+**Option 1: Revert to previous version**
+```bash
+npm install -g opencode-baseline-hooks@0.8.0
+```
+
+**Option 2: Disable the plugin entirely**
+
+Edit your config file directly with any text editor:
+
+```bash
+# Global config
+nano ~/.config/opencode/opencode.json
+
+# Or project config  
+nano .opencode/opencode.json
+```
+
+Remove or comment out the plugin:
+```json
+{
+  "plugin": [
+    // "opencode-baseline-hooks"
+  ]
+}
+```
+
+Then restart OpenCode - it will start without the plugin.
+
+**Option 3: Check logs**
+
+Plugin errors are logged to `.opencode/logs/errors.json` in your project directory.
+
+---
+
 ## What's new in v0.9.0
 
 - **Smart Notification Queue**: Priority-based queue with configurable channels and personas
