@@ -860,24 +860,24 @@ const plugin = async (context) => {
                 const command = String(args.command || "");
                 if (isDangerousRmCommand(command)) {
                     updateDailyStats(logDir, { blockedCommands: 1 });
-                    await smartNotify("Blocked dangerous rm command", "blocked", "high", aggregatedState, projectName);
+                    await notify(`${projectName}: Blocked dangerous rm command`, "blocked");
                     throw new Error(`BLOCKED: Dangerous rm command detected.\nCommand: ${command}\nUse safer alternatives or be more specific.`);
                 }
                 const [isDangerous, dangerReason] = checkDangerousCommand(command);
                 if (isDangerous) {
                     updateDailyStats(logDir, { blockedCommands: 1 });
-                    await smartNotify("Blocked dangerous command", "blocked", "high", aggregatedState, projectName);
+                    await notify(`${projectName}: Blocked dangerous command`, "blocked");
                     throw new Error(`BLOCKED: ${dangerReason}\nCommand: ${command}`);
                 }
                 const [isGitDangerous, gitReason, gitAction] = checkGitCommand(command);
                 if (isGitDangerous) {
                     if (gitAction === "block") {
                         updateDailyStats(logDir, { blockedCommands: 1 });
-                        await smartNotify("Blocked dangerous git command", "blocked", "high", aggregatedState, projectName);
+                        await notify(`${projectName}: Blocked dangerous git command`, "blocked");
                         throw new Error(`BLOCKED: ${gitReason}\nCommand: ${command}`);
                     }
                     else {
-                        await smartNotify(`Warning: ${gitReason}`, "warning", "normal", aggregatedState, projectName);
+                        await notify(`${projectName}: Warning - ${gitReason}`, "warning");
                         appendLog(join(logDir, "warnings.json"), {
                             type: "git_warning",
                             command,
@@ -889,7 +889,7 @@ const plugin = async (context) => {
             const [isBlocked, reason] = isSensitiveFileAccess(tool, args);
             if (isBlocked) {
                 updateDailyStats(logDir, { blockedCommands: 1 });
-                await smartNotify("Blocked sensitive file access", "blocked", "high", aggregatedState, projectName);
+                await notify(`${projectName}: Blocked sensitive file access`, "blocked");
                 throw new Error(`BLOCKED: ${reason}`);
             }
             if (["write", "edit"].includes(tool.toLowerCase())) {
@@ -897,7 +897,7 @@ const plugin = async (context) => {
                 const secrets = detectSecrets(content);
                 if (secrets.length > 0) {
                     updateDailyStats(logDir, { blockedCommands: 1 });
-                    await smartNotify("Blocked writing secrets to file", "blocked", "high", aggregatedState, projectName);
+                    await notify(`${projectName}: Blocked writing secrets to file`, "blocked");
                     throw new Error(`BLOCKED: Potential secrets detected in content:\n- ${secrets.join("\n- ")}\n\nUse environment variables instead.`);
                 }
             }
@@ -960,32 +960,31 @@ const plugin = async (context) => {
                         command.includes("tsc") || command.includes("make")) {
                         if (lowerOutput.includes("error") || lowerOutput.includes("failed")) {
                             aggregatedState.buildResult = "failed";
-                            await smartNotify("Build failed", "build", "high", aggregatedState, projectName);
+                            await notify(`${projectName}: Build failed`, "build");
                         }
                         else if (lowerOutput.includes("successfully") || lowerOutput.includes("compiled")) {
                             aggregatedState.buildResult = "success";
-                            await smartNotify("Build succeeded", "build", "normal", aggregatedState, projectName);
+                            await notify(`${projectName}: Build succeeded`, "build");
                         }
                     }
                     if (command.includes("npm test") || command.includes("yarn test") ||
                         command.includes("pytest") || command.includes("jest")) {
                         if (lowerOutput.includes("failed") || lowerOutput.includes("error")) {
                             aggregatedState.testResult = "failed";
-                            await smartNotify("Tests failed", "test", "high", aggregatedState, projectName);
+                            await notify(`${projectName}: Tests failed`, "test");
                         }
                         else if (lowerOutput.includes("passed") || lowerOutput.includes("success")) {
                             aggregatedState.testResult = "success";
-                            await smartNotify("Tests passed", "test", "normal", aggregatedState, projectName);
+                            await notify(`${projectName}: Tests passed`, "test");
                         }
                     }
                 }
             }
-            // Long task warning (every 3 minutes)
             const elapsed = Date.now() - (taskStartTime || Date.now());
             if (elapsed > 180000 && !longTaskWarningGiven) {
                 longTaskWarningGiven = true;
                 const minutes = Math.floor(elapsed / 60000);
-                await speakWithKokoro(`Task running for ${minutes} minutes.`, "normal");
+                await notify(`Task running for ${minutes} minutes`, "warning");
             }
         },
         event: async ({ event }) => {
@@ -996,7 +995,7 @@ const plugin = async (context) => {
                     directory,
                 }, 100);
                 if (NOTIFICATION_MODE === "verbose") {
-                    await smartNotify(`Session started for ${projectName}`, "session", "normal", aggregatedState, projectName);
+                    await notify(`Session started for ${projectName}`, "session");
                 }
                 taskStartTime = null;
                 toolCount = 0;
@@ -1011,7 +1010,7 @@ const plugin = async (context) => {
                 const sessionCost = (sessionTokens / 1000) *
                     ((COST_PER_1K_INPUT_TOKENS + COST_PER_1K_OUTPUT_TOKENS) / 2);
                 const summaryMessage = buildCompletionSummary(projectName, duration, sessionCost, aggregatedState);
-                await smartNotify(summaryMessage, "completion", "normal", aggregatedState);
+                await notify(summaryMessage, "completion");
                 appendLog(join(logDir, "sessions.json"), {
                     type: "task.complete",
                     duration,
@@ -1030,14 +1029,13 @@ const plugin = async (context) => {
             }
             if (event.type === "session.error") {
                 updateDailyStats(logDir, { errors: 1 });
-                await smartNotify("An error occurred. Your attention is needed.", "error", "high", aggregatedState, projectName);
+                await notify(`${projectName}: An error occurred. Your attention is needed.`, "error");
             }
-            // Generate usage graph on request (can be triggered by a command)
             if (event.type === "usage.graph") {
                 const graphPath = generateUsageGraph(logDir);
                 if (graphPath.endsWith(".html")) {
                     await execAsync(`open "${graphPath}"`);
-                    await speakWithKokoro("Usage graph opened in browser.");
+                    await notify("Usage graph opened in browser", "info");
                 }
             }
         },
