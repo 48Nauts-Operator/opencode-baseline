@@ -1,10 +1,38 @@
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs"
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs"
 import { join, basename } from "path"
 import { homedir } from "os"
 import { exec } from "child_process"
 import { promisify } from "util"
 
 const execAsync = promisify(exec)
+
+const AUDIO_LOCK_FILE = "/tmp/opencode_audio.lock"
+
+async function acquireAudioLock(timeoutMs = 30000): Promise<boolean> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (!existsSync(AUDIO_LOCK_FILE)) {
+      try {
+        writeFileSync(AUDIO_LOCK_FILE, String(process.pid))
+        return true
+      } catch {
+        // Another process beat us
+      }
+    }
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  return false
+}
+
+function releaseAudioLock(): void {
+  try {
+    if (existsSync(AUDIO_LOCK_FILE)) {
+      unlinkSync(AUDIO_LOCK_FILE)
+    }
+  } catch {
+    // Ignore
+  }
+}
 
 // ============================================================================
 // Types
@@ -811,7 +839,7 @@ async function smartNotify(
 function buildCompletionSummary(
   projectName: string,
   duration: number,
-  cost: number,
+  _cost: number,
   aggregatedState: AggregatedNotificationState
 ): string {
   const parts: string[] = []
@@ -840,10 +868,6 @@ function buildCompletionSummary(
     }
   }
 
-  if (cost > 0.01) {
-    parts.push(`cost $${cost.toFixed(2)}`)
-  }
-
   return `${projectName}: ${parts.join(". ")}.`
 }
 
@@ -867,6 +891,11 @@ function resetAggregatedState(state: AggregatedNotificationState): void {
 
 async function speakWithKokoro(text: string, priority: "high" | "normal" = "normal"): Promise<void> {
   if (!VOICE_ENABLED) return
+  
+  const hasLock = await acquireAudioLock()
+  if (!hasLock) {
+    return
+  }
   
   try {
     const response = await fetch(`${KOKORO_URL}/v1/audio/speech`, {
@@ -894,8 +923,10 @@ async function speakWithKokoro(text: string, priority: "high" | "normal" = "norm
     try {
       await execAsync(`osascript -e 'display notification "${text}" with title "OpenCode"'`)
     } catch {
-      // Notifications optional
+      // Fallback failed
     }
+  } finally {
+    releaseAudioLock()
   }
 }
 
@@ -1206,7 +1237,7 @@ const plugin: Plugin = async (context) => {
       }
       
       const elapsed = Date.now() - (taskStartTime || Date.now())
-      if (elapsed > 180000 && !longTaskWarningGiven) {
+      if (elapsed > 600000 && !longTaskWarningGiven) {
         longTaskWarningGiven = true
         const minutes = Math.floor(elapsed / 60000)
         await notify(`Task running for ${minutes} minutes`, "warning")
