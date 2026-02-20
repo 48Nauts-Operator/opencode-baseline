@@ -227,14 +227,14 @@ const PERSONA_REGISTRY: Record<PersonaName, NotificationPersona> = {
 }
 
 const DEFAULT_CATEGORY_CONFIGS: Record<NotificationCategory, NotificationCategoryConfig> = {
-  critical: { enabled: true, priority: 100, channel: "local-speaker", persona: "ops_sentry" },
-  blocked: { enabled: true, priority: 90, channel: "local-speaker", persona: "ops_sentry" },
-  error: { enabled: true, priority: 90, channel: "local-speaker", persona: "ops_sentry" },
-  build: { enabled: true, priority: 70, channel: "local-speaker", persona: "default" },
-  test: { enabled: true, priority: 60, channel: "local-speaker", persona: "default" },
+  critical: { enabled: true, priority: 100, channel: "visual-only", persona: "ops_sentry" },
+  blocked: { enabled: true, priority: 90, channel: "visual-only", persona: "ops_sentry" },
+  error: { enabled: true, priority: 90, channel: "visual-only", persona: "ops_sentry" },
+  build: { enabled: true, priority: 70, channel: "visual-only", persona: "default" },
+  test: { enabled: true, priority: 60, channel: "visual-only", persona: "default" },
   completion: { enabled: true, priority: 50, channel: "local-speaker", persona: "concierge" },
-  session: { enabled: true, priority: 40, channel: "local-speaker", persona: "concierge" },
-  warning: { enabled: true, priority: 30, channel: "visual-only", persona: "default" },
+  session: { enabled: false, priority: 40, channel: "visual-only", persona: "concierge" },
+  warning: { enabled: false, priority: 30, channel: "visual-only", persona: "default" },
   info: { enabled: false, priority: 20, channel: "visual-only", persona: "default" },
 }
 

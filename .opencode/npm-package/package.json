@@ -1,6 +1,6 @@
 {
   "name": "opencode-baseline-hooks",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Security validation, logging, context monitoring, and Kokoro TTS voice notifications for OpenCode",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
