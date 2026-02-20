@@ -615,18 +615,6 @@ function generateUsageGraph(logDir) {
 // ============================================================================
 // Voice/Notification Functions
 // ============================================================================
-function shouldSpeakCategory(category) {
-    if (NOTIFICATION_MODE === "quiet")
-        return false;
-    if (NOTIFICATION_MODE === "verbose")
-        return true;
-    return NOTIFICATION_SPEAK_CATEGORIES.has(category);
-}
-function shouldAggregateCategory(category) {
-    if (NOTIFICATION_MODE !== "smart")
-        return false;
-    return ["blocked", "warning"].includes(category);
-}
 async function visualNotificationOnly(message) {
     try {
         const escaped = message.replace(/"/g, '\\"').replace(/'/g, "'");
@@ -634,32 +622,6 @@ async function visualNotificationOnly(message) {
     }
     catch {
         // Visual notifications are optional
-    }
-}
-async function smartNotify(text, category, priority = "normal", aggregatedState, projectName) {
-    const prefixedText = projectName ? `${projectName}: ${text}` : text;
-    if (NOTIFICATION_MODE === "quiet") {
-        await visualNotificationOnly(prefixedText);
-        return;
-    }
-    if (shouldAggregateCategory(category) && aggregatedState) {
-        if (category === "blocked") {
-            aggregatedState.blockedCount++;
-            if (!aggregatedState.blockedReasons.includes(text)) {
-                aggregatedState.blockedReasons.push(text);
-            }
-        }
-        else if (category === "warning") {
-            aggregatedState.warningCount++;
-        }
-        await visualNotificationOnly(prefixedText);
-        return;
-    }
-    if (shouldSpeakCategory(category)) {
-        await speakWithKokoro(prefixedText, priority);
-    }
-    else {
-        await visualNotificationOnly(prefixedText);
     }
 }
 function buildCompletionSummary(projectName, duration, _cost, aggregatedState) {
@@ -742,20 +704,6 @@ async function speakWithKokoro(text, priority = "normal") {
     }
     finally {
         releaseAudioLock();
-    }
-}
-async function notifyWithSound(message, useVoice = true) {
-    if (useVoice && VOICE_ENABLED) {
-        await speakWithKokoro(message);
-    }
-    else {
-        try {
-            await execAsync(`osascript -e 'display notification "${message}" with title "OpenCode"'`);
-            await execAsync("afplay /System/Library/Sounds/Glass.aiff");
-        }
-        catch {
-            // Notifications optional
-        }
     }
 }
 // ============================================================================

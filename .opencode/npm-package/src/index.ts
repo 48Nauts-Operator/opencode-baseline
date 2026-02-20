@@ -782,57 +782,12 @@ function generateUsageGraph(logDir: string | any): string {
 // Voice/Notification Functions
 // ============================================================================
 
-function shouldSpeakCategory(category: NotificationCategory): boolean {
-  if (NOTIFICATION_MODE === "quiet") return false
-  if (NOTIFICATION_MODE === "verbose") return true
-  return NOTIFICATION_SPEAK_CATEGORIES.has(category)
-}
-
-function shouldAggregateCategory(category: NotificationCategory): boolean {
-  if (NOTIFICATION_MODE !== "smart") return false
-  return ["blocked", "warning"].includes(category)
-}
-
 async function visualNotificationOnly(message: string): Promise<void> {
   try {
     const escaped = message.replace(/"/g, '\\"').replace(/'/g, "'")
     await execAsync(`osascript -e 'display notification "${escaped}" with title "OpenCode"'`)
   } catch {
     // Visual notifications are optional
-  }
-}
-
-async function smartNotify(
-  text: string,
-  category: NotificationCategory,
-  priority: "high" | "normal" = "normal",
-  aggregatedState?: AggregatedNotificationState,
-  projectName?: string
-): Promise<void> {
-  const prefixedText = projectName ? `${projectName}: ${text}` : text
-
-  if (NOTIFICATION_MODE === "quiet") {
-    await visualNotificationOnly(prefixedText)
-    return
-  }
-
-  if (shouldAggregateCategory(category) && aggregatedState) {
-    if (category === "blocked") {
-      aggregatedState.blockedCount++
-      if (!aggregatedState.blockedReasons.includes(text)) {
-        aggregatedState.blockedReasons.push(text)
-      }
-    } else if (category === "warning") {
-      aggregatedState.warningCount++
-    }
-    await visualNotificationOnly(prefixedText)
-    return
-  }
-
-  if (shouldSpeakCategory(category)) {
-    await speakWithKokoro(prefixedText, priority)
-  } else {
-    await visualNotificationOnly(prefixedText)
   }
 }
 
@@ -930,18 +885,7 @@ async function speakWithKokoro(text: string, priority: "high" | "normal" = "norm
   }
 }
 
-async function notifyWithSound(message: string, useVoice = true): Promise<void> {
-  if (useVoice && VOICE_ENABLED) {
-    await speakWithKokoro(message)
-  } else {
-    try {
-      await execAsync(`osascript -e 'display notification "${message}" with title "OpenCode"'`)
-      await execAsync("afplay /System/Library/Sounds/Glass.aiff")
-    } catch {
-      // Notifications optional
-    }
-  }
-}
+
 
 // ============================================================================
 // Plugin Export
